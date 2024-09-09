@@ -8,8 +8,11 @@ jobs:
         name: build enclave
         runs-on: ubuntu-latest
         steps:
+            - uses: actions/checkout@v3
+
             - name: List files in workspace
               run: ls -R ${GITHUB_WORKSPACE}
+            
             - name: Build EIF
               id: build-eif
               uses: richardfan1126/nitro-enclaves-eif-build-action@v1
