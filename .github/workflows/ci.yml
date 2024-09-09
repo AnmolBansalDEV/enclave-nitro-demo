@@ -1,0 +1,23 @@
+name: AWS Nitro enclave deployment
+on: [push]
+permissions:
+  packages: write
+  id-token: write
+jobs: 
+    build_enclave:
+        name: build enclave
+        runs-on: ubuntu-latest
+        steps:
+            - name: Build EIF
+              id: build-eif
+              uses: richardfan1126/nitro-enclaves-eif-build-action@v1
+              with:
+                    docker-build-context-path: app/
+                    dockerfile-path: Dockerfile
+                    enable-ghcr-push: true
+                    enable-artifact-sign: true
+                    eif-file-name: enclave.eif
+                    eif-info-file-name: enclave-info.json
+                    artifact-tag: latest
+                    save-pcrs-in-annotation: true
+                    github-token: ${{ secrets.GITHUB_TOKEN }}
