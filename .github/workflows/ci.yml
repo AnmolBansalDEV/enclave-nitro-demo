@@ -20,6 +20,6 @@ jobs:
                     enable-artifact-sign: true
                     eif-file-name: enclave.eif
                     eif-info-file-name: enclave-info.json
-                    artifact-tag: lets
-                    # save-pcrs-in-annotation: true
+                    artifact-tag: latest
+                    save-pcrs-in-annotation: true
                     github-token: ${{ secrets.GITHUB_TOKEN }}
