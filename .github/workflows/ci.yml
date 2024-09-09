@@ -12,7 +12,7 @@ jobs:
               id: build-eif
               uses: richardfan1126/nitro-enclaves-eif-build-action@v1
               with:
-                    docker-build-context-path: app/
+                    docker-build-context-path: /
                     dockerfile-path: Dockerfile
                     enable-ghcr-push: true
                     enable-artifact-sign: true
