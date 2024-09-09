@@ -15,7 +15,7 @@ jobs:
             
             - name: Build EIF
               id: build-eif
-              uses: richardfan1126/nitro-enclaves-eif-build-action@v1
+              uses: richardfan1126/nitro-enclaves-eif-build-action@v1.2.1
               with:
                     docker-build-context-path: /
                     dockerfile-path: /Dockerfile
