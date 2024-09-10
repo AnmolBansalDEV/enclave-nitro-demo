@@ -9,11 +9,11 @@ jobs:
         name: build enclave
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v2
             
             - name: Build EIF
               id: build-eif  
-              uses: richardfan1126/nitro-enclaves-eif-build-action@dev
+              uses: richardfan1126/nitro-enclaves-eif-build-action@v1.2.1
               with:
                 docker-build-context-path: /
                 enable-ghcr-push: true
