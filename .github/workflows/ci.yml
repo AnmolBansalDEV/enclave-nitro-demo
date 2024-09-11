@@ -54,7 +54,8 @@ jobs:
           ARTIFACT_TAG: ${{ github.sha }}
           ECR_REPO_URI: ${{ secrets.ECR_REPO_URI }} # ECR repository URI stored in secrets
         run: |
-          WORKDIR="${{ github.action_path }}/artifact-push/"
+          WORKDIR="${{ github.workspace }}/artifact-push/"
+
 
           mkdir ${WORKDIR}
           cd ${WORKDIR}
