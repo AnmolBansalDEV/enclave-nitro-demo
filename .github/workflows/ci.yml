@@ -23,3 +23,10 @@ jobs:
                 artifact-tag: ${{ github.sha }}
                 # save-pcrs-in-annotation: true
                 github-token: ${{ secrets.GITHUB_TOKEN }}
+            - name: Upload EIF and info file as artifacts
+              uses: actions/upload-artifact@v2
+              with:
+                name: enclave-artifacts
+                path: |
+                  enclave.eif
+                  enclave-info.json
