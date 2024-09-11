@@ -27,3 +27,15 @@ jobs:
                 path: |
                   ${{ steps.build-eif.outputs.eif-file-path }}
                   ${{ steps.build-eif.outputs.eif-info-path }}
+
+            - name: Configure AWS credentials from Test account
+              uses: aws-actions/configure-aws-credentials@v4
+              with:
+                role-to-assume: arn:aws:iam::717279690196:role/enclave
+                aws-region: us-east-2
+
+            - name: Login to Amazon ECR Private
+              id: login-ecr
+              uses: aws-actions/amazon-ecr-login@v1
+
+            
