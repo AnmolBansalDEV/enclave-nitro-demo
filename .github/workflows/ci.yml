@@ -57,7 +57,7 @@ jobs:
           WORKDIR="${{ github.workspace }}/artifact-push/"
 
 
-          mkdir ${WORKDIR}
+          mkdir -p ${WORKDIR}
           cd ${WORKDIR}
 
           cp "${EIF_FILE_PATH}" "${WORKDIR}/${EIF_FILE_NAME}"
