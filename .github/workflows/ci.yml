@@ -4,38 +4,80 @@ permissions:
   contents: write
   packages: write
   id-token: write
-jobs: 
-    build_enclave:
-        name: build enclave
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            
-            - name: Build EIF
-              id: build-eif  
-              uses: richardfan1126/nitro-enclaves-eif-build-action@v1.2.1
-              with:
-                docker-build-context-path: /
-                eif-file-name: enclave.eif
-                eif-info-file-name: enclave-info.json
-                artifact-tag: ${{ github.sha }}
-                github-token: ${{ secrets.GITHUB_TOKEN }}
-            - name: Upload EIF and info file as artifacts
-              uses: actions/upload-artifact@v4
-              with:
-                name: enclave-artifacts
-                path: |
-                  ${{ steps.build-eif.outputs.eif-file-path }}
-                  ${{ steps.build-eif.outputs.eif-info-path }}
+jobs:
+  build_enclave:
+    name: build enclave
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
-            - name: Configure AWS credentials from Test account
-              uses: aws-actions/configure-aws-credentials@v4
-              with:
-                role-to-assume: arn:aws:iam::717279690196:role/enclave
-                aws-region: us-east-2
+      - name: Build EIF
+        id: build-eif
+        uses: richardfan1126/nitro-enclaves-eif-build-action@v1.2.1
+        with:
+          docker-build-context-path: /
+          eif-file-name: enclave.eif
+          eif-info-file-name: enclave-info.json
+          artifact-tag: ${{ github.sha }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload EIF and info file as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: enclave-artifacts
+          path: |
+            ${{ steps.build-eif.outputs.eif-file-path }}
+            ${{ steps.build-eif.outputs.eif-info-path }}
 
-            - name: Login to Amazon ECR Private
-              id: login-ecr
-              uses: aws-actions/amazon-ecr-login@v1
+      - name: Setup oras
+        uses: oras-project/setup-oras@ee7dbe1144cb00080a89497f937dae78f85fce29 # oras-project/setup-oras@v1.1.0
+        with:
+          version: 1.1.0
 
-            
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::717279690196:role/enclave
+          aws-region: us-east-2
+
+      - name: Login to Amazon ECR Private
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Push file to ECR
+        id: push-file
+        shell: bash
+        env:
+          EIF_FILE_PATH: ${{ steps.build-eif.outputs.eif-file-path }}
+          EIF_INFO_PATH: ${{ steps.build-eif.outputs.eif-info-path }}
+          EIF_FILE_NAME: enclave.eif
+          EIF_INFO_FILE_NAME: enclave-info.json
+          ARTIFACT_TAG: ${{ github.sha }}
+          ECR_REPO_URI: ${{ secrets.ECR_REPO_URI }} # ECR repository URI stored in secrets
+        run: |
+          WORKDIR="${{ github.action_path }}/artifact-push/"
+
+          mkdir ${WORKDIR}
+          cd ${WORKDIR}
+
+          cp "${EIF_FILE_PATH}" "${WORKDIR}/${EIF_FILE_NAME}"
+          cp "${EIF_INFO_PATH}" "${WORKDIR}/${EIF_INFO_FILE_NAME}"
+
+          mkdir tmp/
+
+          PCR0=$(jq -r ".Measurements.PCR0" ${WORKDIR}/${EIF_INFO_FILE_NAME})
+          PCR1=$(jq -r ".Measurements.PCR1" ${WORKDIR}/${EIF_INFO_FILE_NAME})
+          PCR2=$(jq -r ".Measurements.PCR2" ${WORKDIR}/${EIF_INFO_FILE_NAME})
+
+          oras push \
+            --export-manifest tmp/manifest.json \
+            --annotation "PCR0=${PCR0}" \
+            --annotation "PCR1=${PCR1}" \
+            --annotation "PCR2=${PCR2}" \
+            "${ECR_REPO_URI}:${ARTIFACT_TAG}" \
+            "${EIF_FILE_NAME}" \
+            "${EIF_INFO_FILE_NAME}"
+
+          DIGEST=$(sha256sum tmp/manifest.json | cut -d " " -f 1)
+
+          echo "digest=${DIGEST}" >> "${GITHUB_OUTPUT}"
+          echo "path=${ECR_REPO_URI}:${ARTIFACT_TAG}@sha256:${DIGEST}" >> "${GITHUB_OUTPUT}"
