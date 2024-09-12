@@ -20,13 +20,6 @@ jobs:
           eif-info-file-name: enclave-info.json
           artifact-tag: ${{ github.sha }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload EIF and info file as artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: enclave-artifacts
-          path: |
-            ${{ steps.build-eif.outputs.eif-file-path }}
-            ${{ steps.build-eif.outputs.eif-info-path }}
 
       - name: Setup oras
         uses: oras-project/setup-oras@ee7dbe1144cb00080a89497f937dae78f85fce29 # oras-project/setup-oras@v1.1.0
@@ -52,23 +45,22 @@ jobs:
           EIF_FILE_NAME: enclave.eif
           EIF_INFO_FILE_NAME: enclave-info.json
           ARTIFACT_TAG: ${{ github.sha }}
-          ECR_REPO_URI: ${{ secrets.ECR_REPO_URI }} # ECR repository URI stored in secrets
+          ECR_REPO_URI: ${{ secrets.ECR_REPO_URI }}
         run: |
           WORKDIR="${{ github.workspace }}/artifact-push/"
-
-
+          
           mkdir -p ${WORKDIR}
           cd ${WORKDIR}
-
+          
           cp "${EIF_FILE_PATH}" "${WORKDIR}/${EIF_FILE_NAME}"
           cp "${EIF_INFO_PATH}" "${WORKDIR}/${EIF_INFO_FILE_NAME}"
-
+          
           mkdir tmp/
-
+          
           PCR0=$(jq -r ".Measurements.PCR0" ${WORKDIR}/${EIF_INFO_FILE_NAME})
           PCR1=$(jq -r ".Measurements.PCR1" ${WORKDIR}/${EIF_INFO_FILE_NAME})
           PCR2=$(jq -r ".Measurements.PCR2" ${WORKDIR}/${EIF_INFO_FILE_NAME})
-
+          
           oras push \
             --export-manifest tmp/manifest.json \
             --annotation "PCR0=${PCR0}" \
@@ -77,8 +69,23 @@ jobs:
             "${ECR_REPO_URI}:${ARTIFACT_TAG}" \
             "${EIF_FILE_NAME}" \
             "${EIF_INFO_FILE_NAME}"
-
+          
           DIGEST=$(sha256sum tmp/manifest.json | cut -d " " -f 1)
-
+          
           echo "digest=${DIGEST}" >> "${GITHUB_OUTPUT}"
           echo "path=${ECR_REPO_URI}:${ARTIFACT_TAG}@sha256:${DIGEST}" >> "${GITHUB_OUTPUT}"
+      
+      - name: Terraform Init
+        run: |
+          cd terraform
+          terraform init
+  
+      - name: Terraform Plan
+        run: |
+          cd terraform
+          terraform plan -out=tfplan
+  
+      - name: Terraform Apply
+        run: |
+          cd terraform
+          terraform apply -auto-approve tfplan
