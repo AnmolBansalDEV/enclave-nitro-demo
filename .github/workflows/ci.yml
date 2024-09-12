@@ -79,7 +79,12 @@ jobs:
         run: |
           cd terraform
           terraform init
-  
+      - name: Create tfvars file
+        run: |
+          cat << EOF > terraform/terraform.tfvars
+          project_name      = "enclave-nitro-demo"
+          eif_artifact_path = "${{ steps.push-file.outputs.path }}"
+          EOF
       - name: Terraform Plan
         run: |
           cd terraform
