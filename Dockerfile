@@ -51,8 +51,8 @@ ADD . /src
 FROM base as build
 RUN <<-EOF
 	set -eux
-	env -C server/ cargo build ${CARGOFLAGS}
-	cp server/target/${TARGET}/release/enclave-nitro-demo /
+	env -C /src/server/ cargo build ${CARGOFLAGS}
+	cp /src/server/target/${TARGET}/release/enclave-nitro-demo /
 	file /enclave-nitro-demo | grep "static-pie"
 EOF
 WORKDIR /build_cpio
