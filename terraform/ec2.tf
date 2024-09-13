@@ -10,7 +10,7 @@ data "aws_ami" "amazon_linux_2023" {
 
 resource "aws_instance" "enclave_instance" {
   ami           = data.aws_ami.amazon_linux_2023.id
-  instance_type = "c5.xlarge"
+  instance_type = "t3.medium"
   subnet_id     = module.vpc.public_subnets[0]
 
   vpc_security_group_ids = [
