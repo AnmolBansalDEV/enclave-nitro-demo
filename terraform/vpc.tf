@@ -2,7 +2,6 @@ module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
   name = var.project_name
-  deployment_id = var.deployment_id
   cidr = "10.0.0.0/16"
 
   azs = [
@@ -12,6 +11,13 @@ module "vpc" {
   public_subnets = [
     "10.0.0.0/24"
   ]
+
+  tags = {
+    Terraform   = "true"
+    Environment = "dev"
+    Project     = var.project_name
+    DeploymentID = var.deployment_id
+  }
 
   enable_nat_gateway            = false
   enable_vpn_gateway            = false
