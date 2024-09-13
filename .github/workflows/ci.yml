@@ -5,21 +5,22 @@ permissions:
   packages: write
   id-token: write
 jobs:
-  build_enclave:
-    name: build enclave
+  build_and_push_enclave:
+    name: Build and Push Enclave
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - name: Build EIF
-        id: build-eif
-        uses: richardfan1126/nitro-enclaves-eif-build-action@v1.2.1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+
+      - name: Build and export EIF
+        uses: docker/build-push-action@v2
         with:
-          docker-build-context-path: /
-          eif-file-name: enclave.eif
-          eif-info-file-name: enclave-info.json
-          artifact-tag: ${{ github.sha }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          context: .
+          file: ./Dockerfile  # Assuming your Dockerfile is in the root directory
+          target: package
+          outputs: type=local,dest=./artifact
 
       - name: Setup oras
         uses: oras-project/setup-oras@ee7dbe1144cb00080a89497f937dae78f85fce29 # oras-project/setup-oras@v1.1.0
@@ -40,10 +41,8 @@ jobs:
         id: push-file
         shell: bash
         env:
-          EIF_FILE_PATH: ${{ steps.build-eif.outputs.eif-file-path }}
-          EIF_INFO_PATH: ${{ steps.build-eif.outputs.eif-info-path }}
-          EIF_FILE_NAME: enclave.eif
-          EIF_INFO_FILE_NAME: enclave-info.json
+          EIF_FILE_NAME: nitro.eif
+          EIF_INFO_FILE_NAME: nitro.pcrs
           ARTIFACT_TAG: ${{ github.sha }}
           ECR_REPO_URI: ${{ secrets.ECR_REPO_URI }}
         run: |
@@ -52,14 +51,14 @@ jobs:
           mkdir -p ${WORKDIR}
           cd ${WORKDIR}
           
-          cp "${EIF_FILE_PATH}" "${WORKDIR}/${EIF_FILE_NAME}"
-          cp "${EIF_INFO_PATH}" "${WORKDIR}/${EIF_INFO_FILE_NAME}"
+          cp "${{ github.workspace }}/artifact/${EIF_FILE_NAME}" "${WORKDIR}/${EIF_FILE_NAME}"
+          cp "${{ github.workspace }}/artifact/${EIF_INFO_FILE_NAME}" "${WORKDIR}/${EIF_INFO_FILE_NAME}"
           
           mkdir tmp/
           
-          PCR0=$(jq -r ".Measurements.PCR0" ${WORKDIR}/${EIF_INFO_FILE_NAME})
-          PCR1=$(jq -r ".Measurements.PCR1" ${WORKDIR}/${EIF_INFO_FILE_NAME})
-          PCR2=$(jq -r ".Measurements.PCR2" ${WORKDIR}/${EIF_INFO_FILE_NAME})
+          PCR0=$(cat ${WORKDIR}/${EIF_INFO_FILE_NAME} | grep PCR0 | cut -d' ' -f2)
+          PCR1=$(cat ${WORKDIR}/${EIF_INFO_FILE_NAME} | grep PCR1 | cut -d' ' -f2)
+          PCR2=$(cat ${WORKDIR}/${EIF_INFO_FILE_NAME} | grep PCR2 | cut -d' ' -f2)
           
           oras push \
             --export-manifest tmp/manifest.json \
