@@ -57,7 +57,8 @@ RUN <<-EOF
 EOF
 WORKDIR /build_cpio
 ENV KBUILD_BUILD_TIMESTAMP=1
-COPY initramfs.list <<-EOF
+RUN <<-EOF
+	cat > initramfs.list << EOL
 	file /server   server  0755 0 0
 	file /nsm.ko   /nsm.ko 0755 0 0
 	dir  /run              0755 0 0
@@ -74,6 +75,7 @@ COPY initramfs.list <<-EOF
 	dir  /dev/shm          0755 0 0
 	dir  /dev/pts          0755 0 0
 	nod  /dev/console      0600 0 0 c 5 1
+	EOL
 EOF
 RUN <<-EOF
 	find . -exec touch -hcd "@0" "{}" +
