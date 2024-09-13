@@ -83,6 +83,7 @@ jobs:
           cat << EOF > terraform/terraform.tfvars
           project_name      = "enclave-nitro-demo"
           eif_artifact_path = "${{ steps.push-file.outputs.path }}"
+          deployment_id     = "${{ github.sha }}"
           EOF
       - name: Terraform Plan
         run: |
@@ -93,3 +94,12 @@ jobs:
         run: |
           cd terraform
           terraform apply -auto-approve tfplan
+      - name: Clean up old deployments
+        run: |
+          cd terraform
+          terraform state list | grep 'module.nitro_enclave' | while read resource; do
+            creation_time=$(terraform show -json | jq -r ".values.root_module.child_modules[] | select(.address == \"module.nitro_enclave\") | .resources[] | select(.address == \"$resource\") | .values.tags.creation_time")
+            if [[ -n $creation_time && $creation_time != ${{ github.sha }} ]]; then
+              terraform destroy -auto-approve -target=$resource
+            fi
+          done

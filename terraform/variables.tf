@@ -7,3 +7,8 @@ variable "eif_artifact_path" {
   type        = string
   description = "The full OCI path of the EIF"
 }
+
+variable "deployment_id" {
+  description = "Unique identifier for this deployment"
+  type        = string
+}

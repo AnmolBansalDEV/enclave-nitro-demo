@@ -27,6 +27,7 @@ resource "aws_instance" "enclave_instance" {
 
   tags = {
     Name = var.project_name
+    creation_time = var.deployment_id
   }
 
   lifecycle {

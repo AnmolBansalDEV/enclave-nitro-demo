@@ -2,6 +2,7 @@ module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
   name = var.project_name
+  deployment_id = var.deployment_id
   cidr = "10.0.0.0/16"
 
   azs = [
@@ -21,6 +22,11 @@ module "vpc" {
 resource "aws_security_group" "instance_sg" {
   name   = var.project_name
   vpc_id = module.vpc.vpc_id
+
+  tags = {
+    Name = var.project_name
+    creation_time = var.deployment_id
+  }
 
   egress {
     from_port = 0
