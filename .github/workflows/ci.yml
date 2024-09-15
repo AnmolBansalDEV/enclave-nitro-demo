@@ -84,7 +84,7 @@ jobs:
           eif_artifact_path: ${{ steps.push-file.outputs.path }}
         run: |
           cd terraform
-          terraform plan -var "eif_artifact_path=${eif_artifact_path}" -out=tfplan
+          terraform plan -var "eif_artifact_path='${eif_artifact_path}'" -out=tfplan
   
       - name: Terraform Apply
         run: |
