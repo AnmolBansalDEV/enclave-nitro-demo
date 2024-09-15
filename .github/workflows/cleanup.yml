@@ -1,7 +1,10 @@
 name: Terraform Cleanup
 
 on: [push]
-  
+permissions:
+  contents: write
+  packages: write
+  id-token: write  
 jobs:
   terraform-cleanup:
     name: "Post Apply Cleanup"
