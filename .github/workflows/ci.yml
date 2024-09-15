@@ -74,17 +74,22 @@ jobs:
           echo "digest=${DIGEST}" >> "${GITHUB_OUTPUT}"
           echo "path=${ECR_REPO_URI}:${ARTIFACT_TAG}@sha256:${DIGEST}" >> "${GITHUB_OUTPUT}"
       
+      - name: Create tfvars file
+        run: |
+          cat << EOF > terraform/terraform.tfvars
+          project_name      = "enclave-nitro-demo"
+          eif_artifact_path = "${{ steps.push-file.outputs.path }}"
+          EOF
+
       - name: Terraform Init
         run: |
           cd terraform
           terraform init
 
       - name: Terraform Plan
-        env:
-          EIF_ARTIFACT_PATH: ${{ steps.push-file.outputs.path }}
         run: |
           cd terraform
-          TF_LOG=DEBUG terraform plan -var "eif_artifact_path=${EIF_ARTIFACT_PATH}" -out=tfplan
+          terraform plan -out=tfplan
   
       - name: Terraform Apply
         run: |
