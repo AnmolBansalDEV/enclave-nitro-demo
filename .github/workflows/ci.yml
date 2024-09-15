@@ -78,13 +78,13 @@ jobs:
         run: |
           cd terraform
           terraform init
-      
+
       - name: Terraform Plan
         env:
-          eif_artifact_path: ${{ steps.push-file.outputs.path }}
+          EIF_ARTIFACT_PATH: ${{ steps.push-file.outputs.path }}
         run: |
           cd terraform
-          terraform plan -var "eif_artifact_path='${eif_artifact_path}'" -out=tfplan
+          TF_LOG=DEBUG terraform plan -var "eif_artifact_path=${EIF_ARTIFACT_PATH}" -out=tfplan
   
       - name: Terraform Apply
         run: |
