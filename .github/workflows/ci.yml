@@ -80,8 +80,6 @@ jobs:
           project_name      = "enclave-nitro-demo"
           eif_artifact_path = "${{ steps.push-file.outputs.path }}"
           EOF
-      - name: debug step
-        run: cat terraform/terraform.tfvars
 
       - name: Terraform Init
         run: |

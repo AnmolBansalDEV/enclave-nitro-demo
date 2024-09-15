@@ -14,11 +14,11 @@ systemctl start amazon-ssm-agent
 # Install ORAS CLI for pulling the enclave image
 cd /root
 VERSION="1.1.0"
-curl -LO "https://github.com/oras-project/oras/releases/download/v${VERSION}/oras_${VERSION}_linux_amd64.tar.gz"
+curl -LO "https://github.com/oras-project/oras/releases/download/v$${VERSION}/oras_$${VERSION}_linux_amd64.tar.gz"
 mkdir -p /root/oras-install/
-tar -zxf oras_${VERSION}_*.tar.gz -C /root/oras-install/
+tar -zxf oras_$${VERSION}_*.tar.gz -C /root/oras-install/
 mv /root/oras-install/oras /usr/local/bin/
-rm -rf /root/oras_${VERSION}_*.tar.gz /root/oras-install/
+rm -rf /root/oras_$${VERSION}_*.tar.gz /root/oras-install/
 
 # Install socat for forwarding
 yum install socat -y
