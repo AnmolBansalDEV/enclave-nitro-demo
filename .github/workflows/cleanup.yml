@@ -28,17 +28,17 @@ jobs:
           role-to-assume: arn:aws:iam::717279690196:role/enclave
           aws-region: us-east-2
 
-      - name: "Terraform Init"
-        run: /
+      - name: Terraform Init
+        run: |
             cd terraform
             terraform init
 
-      - name: "Terraform Plan Destroy"
-        run: /
+      - name: Terraform Plan Destroy
+        run: |
             cd terraform
             terraform plan -destroy -out=tfplan-destroy
 
       - name: "Terraform Apply Destroy"
-        run: /
+        run: |
             cd terraform
             terraform apply -auto-approve tfplan-destroy
