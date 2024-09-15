@@ -30,4 +30,4 @@ HOME=/root oras pull -o /root ${eifArtifactPath}
 socat -t 30 TCP-LISTEN:80,fork,reuseaddr VSOCK-CONNECT:7777:1000 &
 
 # Run enclave
-nitro-cli run-enclave --cpu-count 2 --memory 512 --enclave-name test --enclave-cid 7777 --eif-path /root/enclave.eif
+nitro-cli run-enclave --cpu-count 2 --memory 512 --enclave-name test --enclave-cid 7777 --eif-path /root/enclave.eif --debug-mode
