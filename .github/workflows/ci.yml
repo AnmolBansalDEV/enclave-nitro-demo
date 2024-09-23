@@ -10,13 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - name: Check for cleanup in commit message
-        id: check_commit_message
-        run: |
-          if [[ "$(git log -1 --pretty=%B)" == *"cleanup"* ]]; then
-            echo "Skipping job because the commit message does not contain 'cleanup'"
-            exit 1
-          fi
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
 
@@ -80,24 +74,24 @@ jobs:
           echo "digest=${DIGEST}" >> "${GITHUB_OUTPUT}"
           echo "path=${ECR_REPO_URI}:${ARTIFACT_TAG}@sha256:${DIGEST}" >> "${GITHUB_OUTPUT}"
       
-      - name: Create tfvars file
-        run: |
-          cat << EOF > terraform/terraform.tfvars
-          project_name      = "enclave-nitro-demo"
-          eif_artifact_path = "${{ steps.push-file.outputs.path }}"
-          EOF
-
-      - name: Terraform Init
-        run: |
-          cd terraform
-          terraform init
-
-      - name: Terraform Plan
-        run: |
-          cd terraform
-          terraform plan -out=tfplan
+      # - name: Create tfvars file
+      #   run: |
+      #     cat << EOF > terraform/terraform.tfvars
+      #     project_name      = "enclave-nitro-demo"
+      #     eif_artifact_path = "${{ steps.push-file.outputs.path }}"
+      #     EOF
   
-      - name: Terraform Apply
-        run: |
-          cd terraform
-          terraform apply -auto-approve tfplan
+      # - name: Terraform Init
+      #   run: |
+      #     cd terraform
+      #     terraform init
+  
+      # - name: Terraform Plan
+      #   run: |
+      #     cd terraform
+      #     terraform plan -out=tfplan
+    
+      # - name: Terraform Apply
+      #   run: |
+      #     cd terraform
+      #     terraform apply -auto-approve tfplan

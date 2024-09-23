@@ -17,6 +17,8 @@ FROM stagex/llvm@sha256:9dfc53795c89295da52719959f96df9122e0b921da6283c7bd7a5827
 FROM stagex/file@sha256:8ce66c0574777bca83c8297b74372e0be7a6cc5d2b7e21061391726ad6d6d406 AS file
 FROM stagex/gcc@sha256:bb550daddcf95acdce9999e359e3ffb1c497916aea41bdd0cae1d6a5a908b4b9 AS gcc
 FROM stagex/linux-nitro@sha256:dd38b784ea9f8f0757e549194d078cccde9d6aed46915df2be9086880693fb17 AS linux-nitro
+FROM alpine:latest AS socat
+RUN apk --no-cache add socat
 
 FROM scratch AS base
 ENV TARGET=x86_64-unknown-linux-musl
@@ -45,6 +47,11 @@ COPY --from=gcc /usr/lib64/* /usr/lib/
 COPY --from=linux-nitro /bzImage .
 COPY --from=linux-nitro /nsm.ko .
 COPY --from=linux-nitro /linux.config .
+
+# Add socat from the socat stage
+COPY --from=socat /usr/bin/socat /usr/bin/socat
+COPY --from=socat /usr/bin/socat1 /usr/bin/socat1
+
 RUN mkdir /tmp
 ADD . /src
 
@@ -89,7 +96,7 @@ RUN eif_build \
     --ramdisk /build_cpio/rootfs.cpio \
     --pcrs_output /nitro.pcrs \
     --output /nitro.eif \
-    --cmdline 'reboot=k initrd=0x2000000,3228672 root=/dev/ram0 panic=1 pci=off nomodules console=ttyS0 i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd'
+    --cmdline 'reboot=k initrd=0x2000000,3228672 root=/dev/ram0 panic=1 pci=off nomodules console=ttyS0 i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd /usr/bin/socat -t 30 VSOCK-LISTEN:1000,fork,reuseaddr TCP:127.0.0.1:8000 & /enclave-nitro-demo'
 
 FROM base AS install
 WORKDIR /rootfs
