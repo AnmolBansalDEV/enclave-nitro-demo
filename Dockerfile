@@ -96,7 +96,7 @@ RUN eif_build \
     --ramdisk /build_cpio/rootfs.cpio \
     --pcrs_output /nitro.pcrs \
     --output /nitro.eif \
-    --cmdline 'reboot=k initrd=0x2000000,3228672 root=/dev/ram0 panic=1 pci=off nomodules console=ttyS0 i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd /usr/bin/socat -t 30 VSOCK-LISTEN:1000,fork,reuseaddr TCP:127.0.0.1:8000 & /enclave-nitro-demo'
+    --cmdline '/usr/bin/socat -t 30 VSOCK-LISTEN:1000,fork,reuseaddr TCP:0.0.0.0:8000 & /enclave-nitro-demo'
 
 FROM base AS install
 WORKDIR /rootfs
