@@ -1,8 +1,8 @@
 use std::process::Command;
 
-use system::{dmesg, freopen, mount, seed_entropy};
+use system::{dmesg, freopen, mount, reboot, seed_entropy};
 
-use server::start_server;
+// use server::start_server;
 
 //TODO: Feature flag
 use aws::{get_entropy, init_platform};
@@ -79,20 +79,20 @@ fn boot() {
     start_socat_redirection();
 
     // Start the server in a new thread with its own Tokio runtime
-    std::thread::spawn(|| {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            start_server().await;
-        });
-    });
+    // std::thread::spawn(|| {
+    //     let runtime = tokio::runtime::Runtime::new().unwrap();
+    //     runtime.block_on(async {
+    //         start_server().await;
+    //     });
+    // });
 }
 
 fn main() {
     boot();
     dmesg("EnclaveOS Booted".to_string());
-
-    // Instead of rebooting, keep the main thread alive
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(3600));
-    }
+    reboot();
+    // // Instead of rebooting, keep the main thread alive
+    // loop {
+    //     std::thread::sleep(std::time::Duration::from_secs(3600));
+    // }
 }
