@@ -1,0 +1,8 @@
+{
+    "rust-analyzer.linkedProjects": [
+        "src/init/Cargo.toml",
+        "src/aws/Cargo.toml",
+        "src/system/Cargo.toml",
+        "src/server/Cargo.toml",
+    ]
+}

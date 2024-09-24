@@ -3,8 +3,7 @@ use axum::{
     Router,
 };
 
-#[tokio::main]
-async fn main() {
+pub async fn start_server() {
     // build our application with a single route
     let app = Router::new().route("/", get(|| async { "Hello, World!" }));
 
@@ -12,3 +11,8 @@ async fn main() {
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }
+
+// #[tokio::main]
+// pub async fn run_server() {
+//     start_server().await;
+// }
