@@ -5,7 +5,10 @@ edition = "2021"
 
 [dependencies]
 libc = "0.2.134"
-tokio = { version = "1.0", features = ["rt", "rt-multi-thread", "macros"] }
-aws = { path = "../aws" }
-system = { path = "../system" }
-server = { path = "../server" }
+aws = { path = "../aws"}
+system = { path = "../system"}
+
+
+[[bin]]
+name = "init"
+path = "init.rs"

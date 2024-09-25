@@ -6,7 +6,7 @@ fn nitro_heartbeat() {
     use libc::{write, read, close, AF_VSOCK};
     let mut buf: [u8; 1] = [0; 1];
     buf[0] = 0xB7; // AWS Nitro heartbeat value
-    let fd = match socket_connect(AF_VSOCK, 1000, 7777) {
+    let fd = match socket_connect(AF_VSOCK, 9000, 3) {
         Ok(f)=> f,
         Err(e)=> {
             eprintln!("{}", e);
@@ -14,16 +14,8 @@ fn nitro_heartbeat() {
         },
     };
     unsafe {
-        if write(fd, buf.as_ptr() as _, 1) < 0 {
-            eprintln!("Failed to write heartbeat signal");
-            close(fd);
-            return;
-        }
-        if read(fd, buf.as_mut_ptr() as _, 1) < 0 {
-            eprintln!("Failed to read heartbeat response");
-            close(fd);
-            return;
-        }
+        write(fd, buf.as_ptr() as _, 1);
+        read(fd, buf.as_ptr() as _, 1);
         close(fd);
     }
     dmesg(format!("Sent NSM heartbeat"));
@@ -64,7 +56,6 @@ pub fn get_entropy(size: usize) -> Result<Vec<u8>, SystemError> {
 pub fn init_platform(){
     use system::insmod;
     // TODO: error handling
-    println!("the nitro heartbeat fn is called!!");
     nitro_heartbeat();
 
 	match insmod("/nsm.ko") {
