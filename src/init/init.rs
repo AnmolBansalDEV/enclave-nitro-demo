@@ -1,6 +1,6 @@
 use std::process::Command;
 
-use system::{seed_entropy, reboot, freopen, mount, dmesg};
+use system::{seed_entropy, freopen, mount, dmesg};
 use server::start_server;
 
 //TODO: Feature flag

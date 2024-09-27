@@ -39,8 +39,8 @@ COPY --from=linux-nitro /bzImage .
 COPY --from=linux-nitro /nsm.ko .
 COPY --from=linux-nitro /linux.config .
 
-COPY --from=socat /usr/bin/socat .
-COPY --from=socat /usr/bin/socat1 .
+COPY --from=socat /usr/bin/socat /usr/bin/socat
+COPY --from=socat /usr/bin/socat1 /usr/bin/socat1
 
 ADD . /
 
