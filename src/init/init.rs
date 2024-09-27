@@ -1,4 +1,7 @@
+use std::process::Command;
+
 use system::{seed_entropy, reboot, freopen, mount, dmesg};
+use server::start_server;
 
 //TODO: Feature flag
 use aws::{init_platform, get_entropy};
@@ -42,6 +45,20 @@ fn init_console() {
     }
 }
 
+fn start_socat_redirection() {
+    let output = Command::new("socat")
+        .args(&[
+            "-t",
+            "30",
+            "VSOCK-LISTEN:1000,fork,reuseaddr",
+            "TCP:0.0.0.0:8000",
+        ])
+        .spawn()
+        .expect("Failed to start socat");
+
+    dmesg(format!("Started socat redirection: {:?}", output));
+}
+
 fn boot(){
     init_rootfs();
     init_console();
@@ -50,10 +67,23 @@ fn boot(){
         Ok(size)=> dmesg(format!("Seeded kernel with entropy: {}", size)),
         Err(e)=> eprintln!("{}", e)
     };
+    // Start socat redirection
+    start_socat_redirection();
+
+    // Start the server in a new thread with its own Tokio runtime
+    std::thread::spawn(|| {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(async {
+            start_server().await;
+        });
+    });
 }
 
 fn main() {
     boot();
     dmesg("EnclaveOS Booted".to_string());
-    reboot();
+    // Instead of rebooting, keep the main thread alive
+    loop {
+        std::thread::sleep(std::time::Duration::from_secs(3600));
+    }
 }

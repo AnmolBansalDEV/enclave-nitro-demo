@@ -1,32 +1,27 @@
-FROM stagex/rust@sha256:e7a7a152ddf91ba4f2d6e426867c54ab43b76eef3f2a97dd0c3d9234090f3ce8 as rust
-FROM stagex/bash@sha256:39c6d22701e58c79548cf0601e72f85bb07bf30608827540e74db30220802430 as bash
-FROM stagex/coreutils@sha256:85341b2055493ff8bf3d90c9d4e7a5993e4dd7a1d11a06854f23e0434bb4abaa as coreutils
-FROM stagex/findutils@sha256:d0d30ce5d176fe2e40e93f707220ae6f54788ff14972005d1a51961c17f5294b as findutils
-FROM stagex/grep@sha256:565d7cc8257d45f19326b3ecbbc2dd3096b4a228977c91f4ed07a265faeb8b05 as grep
-FROM stagex/musl@sha256:27ca6026619beae07a1e7096caa7ac41b1403f5c1839ed4ff79b5aee3c409cec as musl
-FROM stagex/libunwind@sha256:422fe0a108d9f1253dd9694ce432aa195d49a3b60b1d977aa4e94024c7ac52bf as libunwind
-FROM stagex/openssl@sha256:f4e218dba1167008456899c5f19d9e1a1be17d4fc6fb6bb84d41b8eb477fd402 as openssl
-FROM stagex/zlib@sha256:d5df909418ef436e3dd23af397ba2b202bd72f45c81b0e161b507adc9e3e9b9c as zlib
-FROM stagex/ca-certificates@sha256:70c5136051c748fff0d1399101d082ecc204c1eb29d93da094ccf0d25f341121 as ca-certificates
-FROM stagex/binutils@sha256:9cc26e56cdfce106108a0f4c416a27967060d8d07c4da0cbc0e14fa87f7b1dfa as binutils
-FROM stagex/pkgconf@sha256:36fc4ed10a6e044d068aa7316e72588dbd365be4eb0271a84cf632521dbd8a09 as pkgconf
-FROM stagex/git@sha256:3a2853fa2fa725f7f02565e24f508912b33223e49bed915e55a5d3f85548d190 as git
-FROM stagex/gen_initramfs@sha256:66b9b1757dc6f66495d205417d14b79ab25f5b107c5caf609e4d4b9967b6ca6e as gen_initramfs
-FROM stagex/eif_build@sha256:561ac95d02f1a5caf1d600cd2dbf487d1bb63450de0af2b528a9b657c66c12a8 as eif_build
-FROM stagex/llvm@sha256:9dfc53795c89295da52719959f96df9122e0b921da6283c7bd7a582749545b1d as llvm
-FROM stagex/file@sha256:8ce66c0574777bca83c8297b74372e0be7a6cc5d2b7e21061391726ad6d6d406 as file
-FROM stagex/gcc@sha256:bb550daddcf95acdce9999e359e3ffb1c497916aea41bdd0cae1d6a5a908b4b9 as gcc
-FROM stagex/linux-nitro@sha256:dd38b784ea9f8f0757e549194d078cccde9d6aed46915df2be9086880693fb17 as linux-nitro
+FROM stagex/binutils:sx2024.09.0@sha256:30a1bd110273894fe91c3a4a2103894f53eaac43cf12a035008a6982cb0e6908 AS binutils
+FROM stagex/ca-certificates:sx2024.09.0@sha256:33787f1feb634be4232a6dfe77578c1a9b890ad82a2cf18c11dd44507b358803 AS ca-certificates
+FROM stagex/gcc:sx2024.09.0@sha256:439bf36289ef036a934129d69dd6b4c196427e4f8e28bc1a3de5b9aab6e062f0 AS gcc
+FROM stagex/zlib:sx2024.09.0@sha256:96b4100550760026065dac57148d99e20a03d17e5ee20d6b32cbacd61125dbb6 AS zlib
+FROM stagex/llvm:sx2024.09.0@sha256:30517a41af648305afe6398af5b8c527d25545037df9d977018c657ba1b1708f AS llvm
+FROM stagex/openssl:sx2024.09.0@sha256:2c1a9d8fcc6f52cb11a206f380b17d74c1079f04cbb08071a4176648b4df52c1 AS openssl
+FROM stagex/eif_build:sx2024.09.0@sha256:291653f1ca528af48fd05858749c443300f6b24d2ffefa7f5a3a06c27c774566 AS eif_build
+FROM stagex/gen_initramfs:sx2024.09.0@sha256:f5b9271cca6003e952cbbb9ef041ffa92ba328894f563d1d77942e6b5cdeac1a AS gen_initramfs
+FROM stagex/libunwind:sx2024.09.0@sha256:97ee6068a8e8c9f1c74409f80681069c8051abb31f9559dedf0d0d562d3bfc82 AS libunwind
+FROM stagex/rust:sx2024.09.0@sha256:b7c834268a81bfcc473246995c55b47fe18414cc553e3293b6294fde4e579163 AS rust
+FROM stagex/musl:sx2024.09.0@sha256:ad351b875f26294562d21740a3ee51c23609f15e6f9f0310e0994179c4231e1d AS musl
+FROM stagex/git:sx2024.09.0@sha256:29a02c423a4b55fa72cf2fce89f3bbabd1defea86d251bb2aea84c056340ab22 AS git
+FROM stagex/pkgconf:sx2024.09.0@sha256:ba7fce4108b721e8bf1a0d993a5f9be9b65eceda8ba073fe7e8ebca2a31b1494 AS pkgconf
+FROM stagex/busybox:sx2024.09.0@sha256:d34bfa56566aa72d605d6cbdc154de8330cf426cfea1bc4ba8013abcac594395 AS busybox
+FROM stagex/linux-nitro:sx2024.03.0@sha256:073c4603686e3bdc0ed6755fee3203f6f6f1512e0ded09eaea8866b002b04264 AS linux-nitro
+FROM stagex/socat:sx2024.09.0@sha256:073e28399a142bd4ce28c8bf4ffc12fdf745a605c60fae121b7076223383007d AS socat
 
-FROM scratch as base
+FROM scratch AS base
 ENV TARGET=x86_64-unknown-linux-musl
 ENV RUSTFLAGS="-C target-feature=+crt-static"
 ENV CARGOFLAGS="--locked --no-default-features --release --target ${TARGET}"
 ENV OPENSSL_STATIC=true
-COPY --from=bash /bin/bash /bin/sh
-COPY --from=coreutils . /
-COPY --from=findutils . /
-COPY --from=grep . /
+
+COPY --from=busybox . /
 COPY --from=musl . /
 COPY --from=libunwind . /
 COPY --from=openssl . /
@@ -39,23 +34,21 @@ COPY --from=rust . /
 COPY --from=gen_initramfs . /
 COPY --from=eif_build . /
 COPY --from=llvm . /
-COPY --from=file . /
 COPY --from=gcc . /
-COPY --from=gcc /usr/lib64/* /usr/lib/
 COPY --from=linux-nitro /bzImage .
 COPY --from=linux-nitro /nsm.ko .
 COPY --from=linux-nitro /linux.config .
-RUN mkdir /tmp
-ADD . /src
 
-FROM base as build
-RUN <<-EOF
-	set -eux
-	env -C /src/src/init cargo build ${CARGOFLAGS}
-	cp /src/src/init/target/${TARGET}/release/init /
-	file /init | grep "static-pie"
-EOF
+COPY --from=socat /usr/bin/socat .
+COPY --from=socat /usr/bin/socat1 .
+
+ADD . /
+
+FROM base AS build
+WORKDIR /src/init
+RUN cargo build ${CARGOFLAGS}
 WORKDIR /build_cpio
+RUN cp /src/init/target/${TARGET}/release/init init
 ENV KBUILD_BUILD_TIMESTAMP=1
 COPY <<-EOF initramfs.list
 	file /init     init    0755 0 0
@@ -89,11 +82,10 @@ RUN eif_build \
 	--output /nitro.eif \
 	--cmdline 'reboot=k initrd=0x2000000,3228672 root=/dev/ram0 panic=1 pci=off nomodules console=ttyS0 i8042.noaux i8042.nomux i8042.nopnp i8042.dumbkbd'
 
-FROM base as install
+FROM base AS install
 WORKDIR /rootfs
 COPY --from=build /nitro.eif .
 COPY --from=build /nitro.pcrs .
-RUN find . -exec touch -hcd "@0" "{}" +
 
-FROM scratch as package
+FROM scratch AS package
 COPY --from=install /rootfs .
