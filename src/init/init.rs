@@ -46,7 +46,7 @@ fn init_console() {
 }
 
 fn start_socat_redirection() {
-    let output = Command::new("socat")
+    match Command::new("/usr/bin/socat")
         .args(&[
             "-t",
             "30",
@@ -54,9 +54,10 @@ fn start_socat_redirection() {
             "TCP:0.0.0.0:8000",
         ])
         .spawn()
-        .expect("Failed to start socat");
-
-    dmesg(format!("Started socat redirection: {:?}", output));
+    {
+        Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
+        Err(e) => dmesg(format!("Failed to start socat: {}", e)),
+    }
 }
 
 fn boot(){
