@@ -1,4 +1,4 @@
-use std::{fs, process::Command};
+use std::{fs, os::unix::fs::PermissionsExt, process::Command};
 
 use system::{seed_entropy, freopen, mount, dmesg};
 use server::start_server;
