@@ -59,16 +59,22 @@ fn debug_filesystem() {
         Err(e) => dmesg(format!("Error reading /: {}", e)),
     }
 
-    // List /usr/bin
-    match fs::read_dir("/usr/bin") {
-        Ok(entries) => {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    dmesg(format!("Found in /usr/bin: {:?}", entry.path()));
-                }
-            }
+      // Check socat file
+      match fs::metadata("/socat") {
+        Ok(metadata) => {
+            dmesg(format!("socat metadata: {:?}", metadata));
+            dmesg(format!("socat permissions: {:o}", metadata.permissions().mode()));
         },
-        Err(e) => dmesg(format!("Error reading /usr/bin: {}", e)),
+        Err(e) => dmesg(format!("Error getting socat metadata: {}", e)),
+    }
+
+    // Try to execute socat with --version
+    match Command::new("/socat").arg("--version").output() {
+        Ok(output) => {
+            dmesg(format!("socat --version output: {:?}", String::from_utf8_lossy(&output.stdout)));
+            dmesg(format!("socat --version error: {:?}", String::from_utf8_lossy(&output.stderr)));
+        },
+        Err(e) => dmesg(format!("Error executing socat --version: {}", e)),
     }
 }
 
