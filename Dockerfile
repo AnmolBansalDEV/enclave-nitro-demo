@@ -38,9 +38,8 @@ COPY --from=gcc . /
 COPY --from=linux-nitro /bzImage .
 COPY --from=linux-nitro /nsm.ko .
 COPY --from=linux-nitro /linux.config .
-
-COPY --from=socat /usr/bin/socat /usr/bin/socat
-COPY --from=socat /usr/bin/socat1 /usr/bin/socat1
+COPY --from=socat /usr/bin/socat .
+COPY --from=socat /usr/bin/socat1 .
 
 ADD . /
 
@@ -53,6 +52,8 @@ ENV KBUILD_BUILD_TIMESTAMP=1
 COPY <<-EOF initramfs.list
 	file /init     init    0755 0 0
 	file /nsm.ko   /nsm.ko 0755 0 0
+	file /socat    /socat  0755 0 0
+	file /socat1   /socat1 0755 0 0
 	dir  /run              0755 0 0
 	dir  /tmp              0755 0 0
 	dir  /etc              0755 0 0

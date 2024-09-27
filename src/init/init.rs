@@ -46,7 +46,7 @@ fn init_console() {
 }
 
 fn start_socat_redirection() {
-    match Command::new("/usr/bin/socat")
+    match Command::new("/socat")
         .args(&[
             "-t",
             "30",
