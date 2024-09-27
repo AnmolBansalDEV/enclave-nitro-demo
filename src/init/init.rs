@@ -1,4 +1,4 @@
-use std::process::Command;
+use std::{fs, process::Command};
 
 use system::{seed_entropy, freopen, mount, dmesg};
 use server::start_server;
@@ -44,8 +44,36 @@ fn init_console() {
         }
     }
 }
+fn debug_filesystem() {
+    dmesg("Debugging filesystem:".to_string());
+    
+    // List root directory
+    match fs::read_dir("/") {
+        Ok(entries) => {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    dmesg(format!("Found in /: {:?}", entry.path()));
+                }
+            }
+        },
+        Err(e) => dmesg(format!("Error reading /: {}", e)),
+    }
+
+    // List /usr/bin
+    match fs::read_dir("/usr/bin") {
+        Ok(entries) => {
+            for entry in entries {
+                if let Ok(entry) = entry {
+                    dmesg(format!("Found in /usr/bin: {:?}", entry.path()));
+                }
+            }
+        },
+        Err(e) => dmesg(format!("Error reading /usr/bin: {}", e)),
+    }
+}
 
 fn start_socat_redirection() {
+    debug_filesystem();
     match Command::new("/socat")
         .args(&[
             "-t",
