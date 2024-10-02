@@ -13,7 +13,39 @@ FROM stagex/git:sx2024.09.0@sha256:29a02c423a4b55fa72cf2fce89f3bbabd1defea86d251
 FROM stagex/pkgconf:sx2024.09.0@sha256:ba7fce4108b721e8bf1a0d993a5f9be9b65eceda8ba073fe7e8ebca2a31b1494 AS pkgconf
 FROM stagex/busybox:sx2024.09.0@sha256:d34bfa56566aa72d605d6cbdc154de8330cf426cfea1bc4ba8013abcac594395 AS busybox
 FROM stagex/linux-nitro:sx2024.03.0@sha256:073c4603686e3bdc0ed6755fee3203f6f6f1512e0ded09eaea8866b002b04264 AS linux-nitro
-FROM stagex/socat:sx2024.09.0@sha256:073e28399a142bd4ce28c8bf4ffc12fdf745a605c60fae121b7076223383007d AS socat
+
+FROM scratch AS socat_base
+ENV VERSION=1.8.0.0
+ENV SRC_HASH=6010f4f311e5ebe0e63c77f78613d264253680006ac8979f52b0711a9a231e82
+ENV SRC_FILE=socat-${VERSION}.tar.gz
+ENV SRC_SITE=http://www.dest-unreach.org/socat/download/${SRC_FILE}
+
+FROM socat_base AS socat_fetch
+ADD --checksum=sha256:${SRC_HASH} ${SRC_SITE} ${SRC_FILE}
+
+FROM socat_fetch AS socat_build
+COPY --from=stagex/busybox . /
+COPY --from=stagex/musl . /
+COPY --from=stagex/gcc . /
+COPY --from=stagex/binutils . /
+COPY --from=stagex/make . /
+RUN tar -xvf $SRC_FILE
+WORKDIR /socat-${VERSION}
+ENV SOURCE_DATE_EPOCH=1
+RUN --network=none \
+    LDFLAGS="-static" ./configure \
+    --build=x86_64-unknown-linux-musl \
+    --host=x86_64-unknown-linux-musl \
+    --enable-static \
+    --disable-shared \
+    --prefix=/usr/ && \
+    make -j"$(nproc)"
+
+FROM socat_build AS socat_install
+RUN --network=none make DESTDIR=/rootfs install
+
+FROM stagex/filesystem AS socat_package
+COPY --from=socat_install /rootfs/. /
 
 FROM scratch AS base
 ENV TARGET=x86_64-unknown-linux-musl
@@ -38,8 +70,8 @@ COPY --from=gcc . /
 COPY --from=linux-nitro /bzImage .
 COPY --from=linux-nitro /nsm.ko .
 COPY --from=linux-nitro /linux.config .
-COPY --from=socat /usr/bin/socat .
-COPY --from=socat /usr/bin/socat1 .
+COPY --from=socat_package /usr/bin/socat .
+COPY --from=socat_package /usr/bin/socat1 .
 
 ADD . /
 

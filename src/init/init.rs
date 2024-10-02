@@ -69,12 +69,12 @@ fn debug_filesystem() {
     }
 
     // Try to execute socat with --version
-    match Command::new("/socat").arg("--version").output() {
+    match Command::new("/socat").arg("-h").output() {
         Ok(output) => {
-            dmesg(format!("socat --version output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("socat --version error: {:?}", String::from_utf8_lossy(&output.stderr)));
+            dmesg(format!("socat -h output: {:?}", String::from_utf8_lossy(&output.stdout)));
+            dmesg(format!("socat -h error: {:?}", String::from_utf8_lossy(&output.stderr)));
         },
-        Err(e) => dmesg(format!("Error executing socat --version: {}", e)),
+        Err(e) => dmesg(format!("Error executing socat -h: {}", e)),
     }
 }
 
