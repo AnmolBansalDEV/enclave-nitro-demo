@@ -66,6 +66,9 @@ COPY --from=stagex/make . /
 COPY --from=stagex/linux-headers . /
 RUN tar -xvf $SRC_FILE
 WORKDIR /net-tools-${VERSION}
+ENV CC="gcc -static"
+ENV CFLAGS="-static"
+ENV LDFLAGS="-static"
 RUN export BINDIR='/' SBINDIR='/' && \ 
 yes "" | make -j1                 && \
 make DESTDIR=/rootfs -j1 install  && \
