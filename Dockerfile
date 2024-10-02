@@ -47,6 +47,33 @@ RUN --network=none make DESTDIR=/rootfs install
 FROM stagex/filesystem AS socat_package
 COPY --from=socat_install /rootfs/. /
 
+FROM scratch AS net_tools_base
+ENV VERSION=2.10
+ENV SRC_HASH=b262435a5241e89bfa51c3cabd5133753952f7a7b7b93f32e08cb9d96f580d69
+ENV SRC_FILE=net-tools-2.10.tar.xz
+ENV SRC_SITE=https://downloads.sourceforge.net/project/net-tools/net-tools-2.10.tar.xz
+
+FROM net_tools_base AS net_tools_fetch
+ADD --checksum=sha256:${SRC_HASH} ${SRC_SITE} ${SRC_FILE}
+
+FROM net_tools_fetch AS net_tools_build
+COPY --from=stagex/busybox . /
+COPY --from=stagex/musl . /
+COPY --from=stagex/gcc . /
+COPY --from=stagex/binutils . /
+COPY --from=stagex/bash . /
+COPY --from=stagex/make . /
+COPY --from=stagex/linux-headers . /
+RUN tar -xvf $SRC_FILE
+WORKDIR /net-tools-${VERSION}
+RUN export BINDIR='/' SBINDIR='/' && \ 
+yes "" | make -j1                 && \
+make DESTDIR=/rootfs -j1 install  && \
+unset BINDIR SBINDIR
+
+FROM stagex/filesystem AS net_tools_package
+COPY --from=net_tools_build /rootfs/. /
+
 FROM scratch AS base
 ENV TARGET=x86_64-unknown-linux-musl
 ENV RUSTFLAGS="-C target-feature=+crt-static"
@@ -72,6 +99,7 @@ COPY --from=linux-nitro /nsm.ko .
 COPY --from=linux-nitro /linux.config .
 COPY --from=socat_package /usr/bin/socat .
 COPY --from=socat_package /usr/bin/socat1 .
+COPY --from=net_tools_package /ifconfig .
 
 ADD . /
 
@@ -82,24 +110,25 @@ WORKDIR /build_cpio
 RUN cp /src/init/target/${TARGET}/release/init init
 ENV KBUILD_BUILD_TIMESTAMP=1
 COPY <<-EOF initramfs.list
-	file /init     init    0755 0 0
-	file /nsm.ko   /nsm.ko 0755 0 0
-	file /socat    /socat  0755 0 0
-	file /socat1   /socat1 0755 0 0
-	dir  /run              0755 0 0
-	dir  /tmp              0755 0 0
-	dir  /etc              0755 0 0
-	dir  /bin              0755 0 0
-	dir  /sbin             0755 0 0
-	dir  /proc             0755 0 0
-	dir  /sys              0755 0 0
-	dir  /usr              0755 0 0
-	dir  /usr/bin          0755 0 0
-	dir  /usr/sbin         0755 0 0
-	dir  /dev              0755 0 0
-	dir  /dev/shm          0755 0 0
-	dir  /dev/pts          0755 0 0
-	nod  /dev/console      0600 0 0 c 5 1
+	file /init     init      0755 0 0
+	file /nsm.ko   /nsm.ko   0755 0 0
+	file /socat    /socat    0755 0 0
+	file /socat1   /socat1   0755 0 0
+	file /ifconfig /ifconfig 0755 0 0
+	dir  /run              	 0755 0 0
+	dir  /tmp                0755 0 0
+	dir  /etc                0755 0 0
+	dir  /bin                0755 0 0
+	dir  /sbin               0755 0 0
+	dir  /proc               0755 0 0
+	dir  /sys                0755 0 0
+	dir  /usr                0755 0 0
+	dir  /usr/bin            0755 0 0
+	dir  /usr/sbin           0755 0 0
+	dir  /dev                0755 0 0
+	dir  /dev/shm            0755 0 0
+	dir  /dev/pts            0755 0 0
+	nod  /dev/console        0600 0 0 c 5 1
 EOF
 RUN <<-EOF
 	find . -exec touch -hcd "@0" "{}" +
