@@ -93,6 +93,8 @@ fn start_socat_redirection() {
 
     match Command::new("/socat")
         .args(&[
+            "-d",
+            "-d",
             "-t",
             "30",
             "VSOCK-LISTEN:1000,fork,reuseaddr",
@@ -115,21 +117,11 @@ fn boot(){
     };
     // Start socat redirection
     start_socat_redirection();
-
-    // Start the server in a new thread with its own Tokio runtime
-    std::thread::spawn(|| {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            start_server().await;
-        });
-    });
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     boot();
     dmesg("EnclaveOS Booted".to_string());
-    // Instead of rebooting, keep the main thread alive
-    loop {
-        std::thread::sleep(std::time::Duration::from_secs(3600));
-    }
+    start_server().await;
 }
