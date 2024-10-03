@@ -81,7 +81,7 @@ fn debug_filesystem() {
 fn start_socat_redirection() {
     debug_filesystem();
     
-    match Command::new("ifconfig")
+    match Command::new("/ifconfig")
         .args(&["lo", "127.0.0.1"])
         .output() {
         Ok(output) => {
@@ -90,7 +90,7 @@ fn start_socat_redirection() {
         },
         Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
     }
-    
+
     match Command::new("/socat")
         .args(&[
             "-t",
