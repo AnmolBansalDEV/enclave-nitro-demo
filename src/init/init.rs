@@ -1,4 +1,4 @@
-use std::{fs, os::unix::fs::PermissionsExt, process::Command};
+use std::process::Command;
 
 use system::{seed_entropy, freopen, mount, dmesg};
 use server::start_server;
@@ -44,53 +44,8 @@ fn init_console() {
         }
     }
 }
-fn debug_filesystem() {
-    dmesg("Debugging filesystem:".to_string());
-    
-    // List root directory
-    match fs::read_dir("/") {
-        Ok(entries) => {
-            for entry in entries {
-                if let Ok(entry) = entry {
-                    dmesg(format!("Found in /: {:?}", entry.path()));
-                }
-            }
-        },
-        Err(e) => dmesg(format!("Error reading /: {}", e)),
-    }
-
-      // Check socat file
-      match fs::metadata("/socat") {
-        Ok(metadata) => {
-            dmesg(format!("socat metadata: {:?}", metadata));
-            dmesg(format!("socat permissions: {:o}", metadata.permissions().mode()));
-        },
-        Err(e) => dmesg(format!("Error getting socat metadata: {}", e)),
-    }
-
-    // Try to execute socat with --version
-    match Command::new("/socat").arg("-h").output() {
-        Ok(output) => {
-            dmesg(format!("socat -h output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("socat -h error: {:?}", String::from_utf8_lossy(&output.stderr)));
-        },
-        Err(e) => dmesg(format!("Error executing socat -h: {}", e)),
-    }
-}
 
 fn start_socat_redirection() {
-    debug_filesystem();
-    
-    match Command::new("/ifconfig")
-        .args(&["lo", "127.0.0.1"])
-        .output() {
-        Ok(output) => {
-            dmesg(format!("ifconfig output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("ifconfig error: {:?}", String::from_utf8_lossy(&output.stderr)));
-        },
-        Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
-    }
-
     match Command::new("/socat")
         .args(&[
             "-d",
