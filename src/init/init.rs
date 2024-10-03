@@ -125,3 +125,9 @@ async fn main() {
     dmesg("EnclaveOS Booted".to_string());
     start_server().await;
 }
+
+// inside enclave socat connection
+// /usr/bin/socat -t 30 VSOCK-LISTEN:1000,fork,reuseaddr TCP:127.0.0.1:8000 &
+
+// outside enclave socat connection
+// socat -t 30 TCP-LISTEN:80,fork,reuseaddr VSOCK-CONNECT:7777:1000 &
