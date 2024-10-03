@@ -96,7 +96,7 @@ fn start_socat_redirection() {
             "-t",
             "30",
             "VSOCK-LISTEN:1000,fork,reuseaddr",
-            "TCP:0.0.0.0:8000",
+            "TCP:127.0.0.1:8000",
         ])
         .spawn()
     {
