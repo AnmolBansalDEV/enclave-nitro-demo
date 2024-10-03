@@ -29,6 +29,7 @@ COPY --from=stagex/musl . /
 COPY --from=stagex/gcc . /
 COPY --from=stagex/binutils . /
 COPY --from=stagex/make . /
+COPY --from=stagex/linux-headers . /
 RUN tar -xvf $SRC_FILE
 WORKDIR /socat-${VERSION}
 ENV SOURCE_DATE_EPOCH=1
@@ -37,6 +38,7 @@ RUN --network=none \
     --build=x86_64-unknown-linux-musl \
     --host=x86_64-unknown-linux-musl \
     --enable-static \
+    --enable-vsock \
     --disable-shared \
     --prefix=/usr/ && \
     make -j"$(nproc)"
