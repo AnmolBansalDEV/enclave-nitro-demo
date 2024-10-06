@@ -82,7 +82,7 @@ fn start_socat_redirection() {
     debug_filesystem();
     
     match Command::new("/vm")
-        .args(&["-debug"])
+        .args(&["-url", "vsock://3:1024/connect", "-mtu", "2", "-debug"])
         .output() {
         Ok(output) => {
             dmesg(format!("gvforwader output: {:?}", String::from_utf8_lossy(&output.stdout)));
