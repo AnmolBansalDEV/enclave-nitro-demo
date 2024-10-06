@@ -81,6 +81,16 @@ fn debug_filesystem() {
 fn start_socat_redirection() {
     debug_filesystem();
     
+    match Command::new("/ifconfig")
+        .args(&["lo", "127.0.0.1"])
+        .output() {
+        Ok(output) => {
+            dmesg(format!("ifconfig output: {:?}", String::from_utf8_lossy(&output.stdout)));
+            dmesg(format!("ifconfig error: {:?}", String::from_utf8_lossy(&output.stderr)));
+        },
+        Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
+    }
+
     match Command::new("/vm")
         .args(&["-url", "vsock://3:1024/connect", "-mtu", "2", "-debug"])
         .output() {
@@ -91,15 +101,6 @@ fn start_socat_redirection() {
         Err(e) => dmesg(format!("Failed to execute gvforwader: {}", e)),
     }
 
-    // match Command::new("/ifconfig")
-    //     .args(&["lo", "127.0.0.1"])
-    //     .output() {
-    //     Ok(output) => {
-    //         dmesg(format!("ifconfig output: {:?}", String::from_utf8_lossy(&output.stdout)));
-    //         dmesg(format!("ifconfig error: {:?}", String::from_utf8_lossy(&output.stderr)));
-    //     },
-    //     Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
-    // }
 
     // match Command::new("/socat")
     //     .args(&[
