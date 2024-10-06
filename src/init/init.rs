@@ -1,31 +1,37 @@
 use std::{fs, os::unix::fs::PermissionsExt, process::Command};
 
-use system::{seed_entropy, freopen, mount, dmesg};
 use server::start_server;
+use system::{dmesg, freopen, mount, seed_entropy};
 
 //TODO: Feature flag
-use aws::{init_platform, get_entropy};
+use aws::{get_entropy, init_platform};
 
 // Mount common filesystems with conservative permissions
 fn init_rootfs() {
-    use libc::{MS_NOSUID, MS_NOEXEC, MS_NODEV };
+    use libc::{MS_NODEV, MS_NOEXEC, MS_NOSUID};
     let no_dse = MS_NODEV | MS_NOSUID | MS_NOEXEC;
     let no_se = MS_NOSUID | MS_NOEXEC;
     let args = [
-        ("devtmpfs",    "/dev",           "devtmpfs", no_se,  "mode=0755"),
-        ("devtmpfs",    "/dev",           "devtmpfs", no_se,  "mode=0755"),
-        ("devpts",      "/dev/pts",       "devpts",   no_se,  ""),
-        ("shm",         "/dev/shm",       "tmpfs",    no_dse, "mode=0755"),
-        ("proc",        "/proc",          "proc",     no_dse, "hidepid=2"),
-        ("tmpfs",       "/run",           "tmpfs",    no_dse, "mode=0755"),
-        ("tmpfs",       "/tmp",           "tmpfs",    no_dse, ""),
-        ("sysfs",       "/sys",           "sysfs",    no_dse, ""),
-        ("cgroup_root", "/sys/fs/cgroup", "tmpfs",    no_dse, "mode=0755"),
+        ("devtmpfs", "/dev", "devtmpfs", no_se, "mode=0755"),
+        ("devtmpfs", "/dev", "devtmpfs", no_se, "mode=0755"),
+        ("devpts", "/dev/pts", "devpts", no_se, ""),
+        ("shm", "/dev/shm", "tmpfs", no_dse, "mode=0755"),
+        ("proc", "/proc", "proc", no_dse, "hidepid=2"),
+        ("tmpfs", "/run", "tmpfs", no_dse, "mode=0755"),
+        ("tmpfs", "/tmp", "tmpfs", no_dse, ""),
+        ("sysfs", "/sys", "sysfs", no_dse, ""),
+        (
+            "cgroup_root",
+            "/sys/fs/cgroup",
+            "tmpfs",
+            no_dse,
+            "mode=0755",
+        ),
     ];
     for (src, target, fstype, flags, data) in args {
         match mount(src, target, fstype, flags, data) {
-            Ok(())=> dmesg(format!("Mounted {}", target)),
-            Err(e)=> eprintln!("{}", e),
+            Ok(()) => dmesg(format!("Mounted {}", target)),
+            Err(e) => eprintln!("{}", e),
         }
     }
 }
@@ -39,14 +45,14 @@ fn init_console() {
     ];
     for (filename, mode, file) in args {
         match freopen(filename, mode, file) {
-            Ok(())=> {},
-            Err(e)=> eprintln!("{}", e),
+            Ok(()) => {}
+            Err(e) => eprintln!("{}", e),
         }
     }
 }
 fn debug_filesystem() {
     dmesg("Debugging filesystem:".to_string());
-    
+
     // List root directory
     match fs::read_dir("/") {
         Ok(entries) => {
@@ -55,52 +61,74 @@ fn debug_filesystem() {
                     dmesg(format!("Found in /: {:?}", entry.path()));
                 }
             }
-        },
+        }
         Err(e) => dmesg(format!("Error reading /: {}", e)),
     }
 
-      // Check socat file
-      match fs::metadata("/socat") {
+    // Check socat file
+    match fs::metadata("/socat") {
         Ok(metadata) => {
             dmesg(format!("socat metadata: {:?}", metadata));
-            dmesg(format!("socat permissions: {:o}", metadata.permissions().mode()));
-        },
+            dmesg(format!(
+                "socat permissions: {:o}",
+                metadata.permissions().mode()
+            ));
+        }
         Err(e) => dmesg(format!("Error getting socat metadata: {}", e)),
     }
 
     // Try to execute socat with --version
     match Command::new("/socat").arg("-h").output() {
         Ok(output) => {
-            dmesg(format!("socat -h output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("socat -h error: {:?}", String::from_utf8_lossy(&output.stderr)));
-        },
+            dmesg(format!(
+                "socat -h output: {:?}",
+                String::from_utf8_lossy(&output.stdout)
+            ));
+            dmesg(format!(
+                "socat -h error: {:?}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
         Err(e) => dmesg(format!("Error executing socat -h: {}", e)),
     }
 }
 
 fn start_socat_redirection() {
     debug_filesystem();
-    
+
     match Command::new("/ifconfig")
         .args(&["lo", "127.0.0.1"])
-        .output() {
+        .output()
+    {
         Ok(output) => {
-            dmesg(format!("ifconfig output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("ifconfig error: {:?}", String::from_utf8_lossy(&output.stderr)));
-        },
+            dmesg(format!(
+                "ifconfig output: {:?}",
+                String::from_utf8_lossy(&output.stdout)
+            ));
+            dmesg(format!(
+                "ifconfig error: {:?}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
         Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
     }
 
     match Command::new("/vm")
-        .args(&["-url", "vsock://3:1024/connect", "-mtu", "2", "-debug"])
-        .output() {
+        .args(&["-url", "vsock://3:1024/connect", "-mtu", "2", "-mac", "ba:aa:ad:c0:ff:ee", "-debug"])
+        .output()
+    {
         Ok(output) => {
-            dmesg(format!("gvforwader output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("gvforwader error: {:?}", String::from_utf8_lossy(&output.stderr)));
-        },
+            dmesg(format!(
+                "gvforwader output: {:?}",
+                String::from_utf8_lossy(&output.stdout)
+            ));
+            dmesg(format!(
+                "gvforwader error: {:?}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
         Err(e) => dmesg(format!("Failed to execute gvforwader: {}", e)),
     }
-
 
     // match Command::new("/socat")
     //     .args(&[
@@ -118,13 +146,13 @@ fn start_socat_redirection() {
     // }
 }
 
-fn boot(){
+fn boot() {
     init_rootfs();
     init_console();
     init_platform();
     match seed_entropy(4096, get_entropy) {
-        Ok(size)=> dmesg(format!("Seeded kernel with entropy: {}", size)),
-        Err(e)=> eprintln!("{}", e)
+        Ok(size) => dmesg(format!("Seeded kernel with entropy: {}", size)),
+        Err(e) => eprintln!("{}", e),
     };
     // Start socat redirection
     start_socat_redirection();
