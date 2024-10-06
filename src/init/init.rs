@@ -115,19 +115,11 @@ fn start_socat_redirection() {
 
     match Command::new("/vm")
         .args(&["-url", "vsock://3:1024/connect", "-debug"])
-        .output()
-    {
-        Ok(output) => {
-            dmesg(format!(
-                "gvforwader output: {:?}",
-                String::from_utf8_lossy(&output.stdout)
-            ));
-            dmesg(format!(
-                "gvforwader error: {:?}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
+        .spawn()
+        {
+            Ok(output) => dmesg(format!("Started vm redirection: {:?}", output)),
+            Err(e) => dmesg(format!("Failed to start vm: {}", e)),
         }
-        Err(e) => dmesg(format!("Failed to execute gvforwader: {}", e)),
     }
 
     // match Command::new("/socat")
@@ -144,7 +136,7 @@ fn start_socat_redirection() {
     //     Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
     //     Err(e) => dmesg(format!("Failed to start socat: {}", e)),
     // }
-}
+// }
 
 fn boot() {
     init_rootfs();
