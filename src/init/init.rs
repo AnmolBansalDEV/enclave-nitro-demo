@@ -81,30 +81,40 @@ fn debug_filesystem() {
 fn start_socat_redirection() {
     debug_filesystem();
     
-    match Command::new("/ifconfig")
-        .args(&["lo", "127.0.0.1"])
+    match Command::new("/vm")
+        .args(&["-debug"])
         .output() {
         Ok(output) => {
-            dmesg(format!("ifconfig output: {:?}", String::from_utf8_lossy(&output.stdout)));
-            dmesg(format!("ifconfig error: {:?}", String::from_utf8_lossy(&output.stderr)));
+            dmesg(format!("gvforwader output: {:?}", String::from_utf8_lossy(&output.stdout)));
+            dmesg(format!("gvforwader error: {:?}", String::from_utf8_lossy(&output.stderr)));
         },
-        Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
+        Err(e) => dmesg(format!("Failed to execute gvforwader: {}", e)),
     }
 
-    match Command::new("/socat")
-        .args(&[
-            "-d",
-            "-d",
-            "-t",
-            "30",
-            "VSOCK-LISTEN:1000,fork,reuseaddr",
-            "TCP:127.0.0.1:8000",
-        ])
-        .spawn()
-    {
-        Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
-        Err(e) => dmesg(format!("Failed to start socat: {}", e)),
-    }
+    // match Command::new("/ifconfig")
+    //     .args(&["lo", "127.0.0.1"])
+    //     .output() {
+    //     Ok(output) => {
+    //         dmesg(format!("ifconfig output: {:?}", String::from_utf8_lossy(&output.stdout)));
+    //         dmesg(format!("ifconfig error: {:?}", String::from_utf8_lossy(&output.stderr)));
+    //     },
+    //     Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
+    // }
+
+    // match Command::new("/socat")
+    //     .args(&[
+    //         "-d",
+    //         "-d",
+    //         "-t",
+    //         "30",
+    //         "VSOCK-LISTEN:1000,fork,reuseaddr",
+    //         "TCP:127.0.0.1:8000",
+    //     ])
+    //     .spawn()
+    // {
+    //     Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
+    //     Err(e) => dmesg(format!("Failed to start socat: {}", e)),
+    // }
 }
 
 fn boot(){
