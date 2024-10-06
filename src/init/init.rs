@@ -65,20 +65,20 @@ fn debug_filesystem() {
         Err(e) => dmesg(format!("Error reading /: {}", e)),
     }
 
-    // Check socat file
-    match fs::metadata("/socat") {
+    // Check vm file
+    match fs::metadata("/vm") {
         Ok(metadata) => {
-            dmesg(format!("socat metadata: {:?}", metadata));
+            dmesg(format!("vm metadata: {:?}", metadata));
             dmesg(format!(
-                "socat permissions: {:o}",
+                "vm permissions: {:o}",
                 metadata.permissions().mode()
             ));
         }
-        Err(e) => dmesg(format!("Error getting socat metadata: {}", e)),
+        Err(e) => dmesg(format!("Error getting vm metadata: {}", e)),
     }
 
     // Try to execute socat with --version
-    match Command::new("/socat").arg("-h").output() {
+    match Command::new("/vm").arg("-dkk").output() {
         Ok(output) => {
             dmesg(format!(
                 "socat -h output: {:?}",
@@ -89,7 +89,7 @@ fn debug_filesystem() {
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        Err(e) => dmesg(format!("Error executing socat -h: {}", e)),
+        Err(e) => dmesg(format!("Error executing vm -dkk: {}", e)),
     }
 }
 
@@ -114,7 +114,7 @@ fn start_socat_redirection() {
     }
 
     match Command::new("/vm")
-        .args(&["-url", "vsock://3:1024/connect", "-mtu", "2", "-mac", "ba:aa:ad:c0:ff:ee", "-debug"])
+        .args(&["-url", "vsock://3:1024/connect", "-debug"])
         .output()
     {
         Ok(output) => {
