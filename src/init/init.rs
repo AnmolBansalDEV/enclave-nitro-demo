@@ -159,127 +159,82 @@ fn debug_filesystem() {
     }
 }
 
-fn start_socat_redirection() -> Result<(), std::io::Error> {
-    // debug_filesystem();
-
-    // let ifconfig = Command::new("/ifconfig")
-    //     .args(&["lo", "127.0.0.1"])
-    //     .output()
-    //     .expect("failed to execute process");
-
-    // println!("status: {}", ifconfig.status);
-    // io::stdout().write_all(&ifconfig.stdout).unwrap();
-    // io::stderr().write_all(&ifconfig.stderr).unwrap();
-
-    // let mut vm = Command::new("/home/anmolbansal/holonym/enclave-nitro-demo/vm")
-    //     .stdin(Stdio::piped())
-    //     .stdout(Stdio::piped())
-    //     .stderr(Stdio::piped())
-    //     .spawn()
-    //     .expect("!vm");
-    // let out = child_stream_to_vec(vm.stdout.take().expect("!stdout"));
-    // let err = child_stream_to_vec(vm.stderr.take().expect("!stderr"));
-    // let mut stdin = match vm.stdin.take() {
-    //     Some(stdin) => stdin.write_all(buf),
-    //     None => panic!("!stdin"),
-    // };
-
-    // let output_stream = stream_command_output(Command::new("/home/anmolbansal/holonym/enclave-nitro-demo/vm"));
+fn start_redirection() -> Result<(), std::io::Error> {
     let path = PathBuf::from("/vm").canonicalize()?;
 
     let mut child = Command::new(path)
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stdout(Stdio::piped())  // Pipe stdout
+        .stderr(Stdio::piped())  // Pipe stderr
         .spawn()
         .expect("Failed to start worker");
 
-    let handle = thread::spawn({
-        let stdout = child.stdout.take().unwrap();
-        set_nonblocking(&stdout, true)?;
+    let stdout = child.stdout.take().unwrap();
+    set_nonblocking(&stdout, true)?;
+    let stderr = child.stderr.take().unwrap();
+    set_nonblocking(&stderr, true)?;
+
+    // Poll for both stdout and stderr
+    let handle = thread::spawn(move || {
         let mut reader_out = BufReader::new(stdout);
-
-        let stderr = child.stderr.take().unwrap();
-        set_nonblocking(&stderr, true)?;
         let mut reader_err = BufReader::new(stderr);
+        let poller = Poller::new().unwrap();
+        let key_out = 1;
+        let key_err = 2;
+        let mut out_closed = false;
+        let mut err_closed = false;
+        let mut line = String::new();
+        let mut events = Events::with_capacity(NonZero::new(2).unwrap());
 
-        move || {
-            let key_out = 1;
-            let key_err = 2;
-            let mut out_closed = false;
-            let mut err_closed = false;
+        unsafe {
+            poller.add(reader_out.get_ref(), Event::readable(key_out)).unwrap();
+            poller.add(reader_err.get_ref(), Event::readable(key_err)).unwrap();
+        }
 
-            let poller = Poller::new().unwrap();
-            unsafe {
-                poller
-                    .add(reader_out.get_ref(), Event::readable(key_out))
-                    .unwrap()
-            };
-            unsafe {
-                poller
-                    .add(reader_err.get_ref(), Event::readable(key_err))
-                    .unwrap();
+        loop {
+            events.clear();
+            poller.wait(&mut events, None).unwrap();
+
+            for ev in events.iter() {
+                if ev.key == key_out {
+                    let len = match reader_out.read_line(&mut line) {
+                        Ok(len) => len,
+                        Err(e) => {
+                            println!("stdout error: {}", e);
+                            0
+                        }
+                    };
+                    if len == 0 {
+                        out_closed = true;
+                        poller.delete(reader_out.get_ref()).unwrap();
+                    } else {
+                        print!("[STDOUT] {}", line);
+                        line.clear();
+                        poller.modify(reader_out.get_ref(), Event::readable(key_out)).unwrap();
+                    }
+                }
+                if ev.key == key_err {
+                    let len = match reader_err.read_line(&mut line) {
+                        Ok(len) => len,
+                        Err(e) => {
+                            println!("stderr error: {}", e);
+                            0
+                        }
+                    };
+                    if len == 0 {
+                        err_closed = true;
+                        poller.delete(reader_err.get_ref()).unwrap();
+                    } else {
+                        print!("[STDERR] {}", line);
+                        line.clear();
+                        poller.modify(reader_err.get_ref(), Event::readable(key_err)).unwrap();
+                    }
+                }
             }
 
-            let mut line = String::new();
-            let mut events = Events::with_capacity(NonZero::new(2).unwrap());
-            loop {
-                // Wait for at least one I/O event.
-                events.clear();
-                poller.wait(&mut events, None).unwrap();
-
-                for ev in events.iter() {
-                    // stdout is ready for reading
-                    if ev.key == key_out {
-                        let len = match reader_out.read_line(&mut line) {
-                            Ok(len) => len,
-                            Err(e) => {
-                                println!("stdout read returned error: {}", e);
-                                0
-                            }
-                        };
-                        if len == 0 {
-                            println!("stdout closed (len is null)");
-                            out_closed = true;
-                            poller.delete(reader_out.get_ref()).unwrap();
-                        } else {
-                            print!("[STDOUT] {}", line);
-                            line.clear();
-                            // reload the poller
-                            poller
-                                .modify(reader_out.get_ref(), Event::readable(key_out))
-                                .unwrap();
-                        }
-                    }
-
-                    // stderr is ready for reading
-                    if ev.key == key_err {
-                        let len = match reader_err.read_line(&mut line) {
-                            Ok(len) => len,
-                            Err(e) => {
-                                println!("stderr read returned error: {}", e);
-                                0
-                            }
-                        };
-                        if len == 0 {
-                            println!("stderr closed (len is null)");
-                            err_closed = true;
-                            poller.delete(reader_err.get_ref()).unwrap();
-                        } else {
-                            print!("[STDERR] {}", line);
-                            line.clear();
-                            // reload the poller
-                            poller
-                                .modify(reader_err.get_ref(), Event::readable(key_err))
-                                .unwrap();
-                        }
-                    }
-                }
-
-                if out_closed && err_closed {
-                    println!("Stream closed, exiting process thread");
-                    break;
-                }
+            if out_closed && err_closed {
+                println!("Stream closed, exiting process thread");
+                break;
             }
         }
     });
@@ -287,22 +242,6 @@ fn start_socat_redirection() -> Result<(), std::io::Error> {
     handle.join().unwrap();
     Ok(())
 }
-
-// match Command::new("/socat")
-//     .args(&[
-//         "-d",
-//         "-d",
-//         "-t",
-//         "30",
-//         "VSOCK-LISTEN:1000,fork,reuseaddr",
-//         "TCP:127.0.0.1:8000",
-//     ])
-//     .spawn()
-// {
-//     Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
-//     Err(e) => dmesg(format!("Failed to start socat: {}", e)),
-// }
-// }
 
 fn boot() {
     init_rootfs();
@@ -319,16 +258,22 @@ async fn main() {
     boot();
     dmesg("EnclaveOS Booted".to_string());
 
-    // Spawn server as a separate task
-    task::spawn(async move {
+    // Spawn a task to handle the redirection so that it doesn't block the server
+    let redirection_task = tokio::task::spawn_blocking(|| {
+        start_redirection().unwrap();
+    });
+
+    // Start the server asynchronously
+    let server_task = tokio::spawn(async {
         start_server().await;
     });
+
+    // Wait for both tasks to complete
+    tokio::join!(redirection_task, server_task);
     
     let url = "http://127.0.0.1:8000/";
     let response = reqwest::get(url).await.unwrap().text().await.unwrap();
     println!("{}", response);
-
-    start_socat_redirection();
 }
 
 // inside enclave socat connection
