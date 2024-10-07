@@ -160,6 +160,23 @@ fn debug_filesystem() {
 }
 
 fn start_redirection() -> Result<(), std::io::Error> {
+    match Command::new("/ifconfig")
+        .args(&["lo", "127.0.0.1"])
+        .output()
+    {
+        Ok(output) => {
+            dmesg(format!(
+                "ifconfig output: {:?}",
+                String::from_utf8_lossy(&output.stdout)
+            ));
+            dmesg(format!(
+                "ifconfig error: {:?}",
+                String::from_utf8_lossy(&output.stderr)
+            ));
+        }
+        Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
+    }
+
     let path = PathBuf::from("/vm").canonicalize()?;
 
     let mut child = Command::new(path)
@@ -278,24 +295,21 @@ async fn main() {
 
     let test_server = tokio::spawn(async {
         let url = "http://127.0.0.1:8000/";
-    
+
         match reqwest::get(url).await {
-            Ok(response) => {
-                match response.text().await {
-                    Ok(text) => {
-                        println!("{}", text);
-                    }
-                    Err(e) => {
-                        eprintln!("Failed to read response text: {}", e);
-                    }
+            Ok(response) => match response.text().await {
+                Ok(text) => {
+                    println!("{}", text);
                 }
-            }
+                Err(e) => {
+                    eprintln!("Failed to read response text: {}", e);
+                }
+            },
             Err(e) => {
                 eprintln!("Failed to make GET request: {}", e);
             }
         }
     });
-    
 
     // Wait for both tasks to complete
     tokio::join!(redirection_task, server_task, test_server);
