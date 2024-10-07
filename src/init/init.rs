@@ -113,29 +113,29 @@ fn start_socat_redirection() {
         Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
     }
 
-    match Command::new("/vm")
-        .spawn()
-        {
-            Ok(output) => dmesg(format!("Started vm redirection: {:?}", output)),
-            Err(e) => dmesg(format!("Failed to start vm: {}", e)),
-        }
-    }
-
-    // match Command::new("/socat")
-    //     .args(&[
-    //         "-d",
-    //         "-d",
-    //         "-t",
-    //         "30",
-    //         "VSOCK-LISTEN:1000,fork,reuseaddr",
-    //         "TCP:127.0.0.1:8000",
-    //     ])
+    // match Command::new("/vm")
     //     .spawn()
-    // {
-    //     Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
-    //     Err(e) => dmesg(format!("Failed to start socat: {}", e)),
+    //     {
+    //         Ok(output) => dmesg(format!("Started vm redirection: {:?}", output)),
+    //         Err(e) => dmesg(format!("Failed to start vm: {}", e)),
+    //     }
     // }
-// }
+
+    match Command::new("/socat")
+        .args(&[
+            "-d",
+            "-d",
+            "-t",
+            "30",
+            "VSOCK-LISTEN:1000,fork,reuseaddr",
+            "TCP:127.0.0.1:8000",
+        ])
+        .spawn()
+    {
+        Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
+        Err(e) => dmesg(format!("Failed to start socat: {}", e)),
+    }
+}
 
 fn boot() {
     init_rootfs();
