@@ -323,6 +323,11 @@ async fn main() {
     task::spawn(async move {
         start_server().await;
     });
+    
+    let url = "http://127.0.0.1:8000/";
+    let response = reqwest::get(url).await.unwrap().text().await.unwrap();
+    println!("{}", response);
+
     start_socat_redirection();
 }
 

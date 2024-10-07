@@ -11,6 +11,7 @@ system = { path = "../system"}
 server ={ path = "../server"}
 tokio-threadpool = "0.1.18"
 polling = "3.7.3"
+reqwest = "0.12.8"
 
 
 [[bin]]
