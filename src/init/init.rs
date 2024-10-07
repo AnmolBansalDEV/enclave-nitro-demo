@@ -1,5 +1,9 @@
+use libc::{fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
 use server::start_server;
-use std::io::{self, Write};
+use std::io::{BufRead, BufReader};
+use std::num::NonZero;
+use std::os::fd::AsRawFd;
+use std::path::PathBuf;
 use std::thread;
 use std::{
     fs,
@@ -9,7 +13,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 use system::{dmesg, freopen, mount, seed_entropy};
-
+use polling::{Event, Events, Poller};
 //TODO: Feature flag
 use aws::{get_entropy, init_platform};
 
@@ -58,6 +62,28 @@ fn init_console() {
     }
 }
 
+fn set_nonblocking<H>(handle: &H, nonblocking: bool) -> std::io::Result<()>
+where
+    H: Read + AsRawFd,
+{
+    let fd = handle.as_raw_fd();
+    let flags = unsafe { fcntl(fd, F_GETFL, 0) };
+    if flags < 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    let flags = if nonblocking{
+        flags | O_NONBLOCK
+    } else {
+        flags & !O_NONBLOCK
+    };
+    let res = unsafe { fcntl(fd, F_SETFL, flags) };
+    if res != 0 {
+        return Err(std::io::Error::last_os_error());
+    }
+    Ok(())
+}
+
+
 // Pipe streams are blocking, we need separate threads to monitor them without blocking the primary thread.
 fn child_stream_to_vec<R>(mut stream: R) -> Arc<Mutex<Vec<u8>>>
 where
@@ -90,6 +116,7 @@ where
     out
 }
 
+
 fn debug_filesystem() {
     dmesg("Debugging filesystem:".to_string());
 
@@ -104,6 +131,8 @@ fn debug_filesystem() {
         }
         Err(e) => dmesg(format!("Error reading /: {}", e)),
     }
+
+
 
     // Check vm file
     match fs::metadata("/vm") {
@@ -133,30 +162,124 @@ fn debug_filesystem() {
     }
 }
 
-fn start_socat_redirection() {
-    debug_filesystem();
+fn start_socat_redirection() -> Result<(), std::io::Error> {
+    // debug_filesystem();
 
-    let ifconfig = Command::new("/ifconfig")
-        .args(&["lo", "127.0.0.1"])
-        .output()
-        .expect("failed to execute process");
+    // let ifconfig = Command::new("/ifconfig")
+    //     .args(&["lo", "127.0.0.1"])
+    //     .output()
+    //     .expect("failed to execute process");
 
-    println!("status: {}", ifconfig.status);
-    io::stdout().write_all(&ifconfig.stdout).unwrap();
-    io::stderr().write_all(&ifconfig.stderr).unwrap();
+    // println!("status: {}", ifconfig.status);
+    // io::stdout().write_all(&ifconfig.stdout).unwrap();
+    // io::stderr().write_all(&ifconfig.stderr).unwrap();
 
-    let mut vm = Command::new("/vm")
-        .stdin(Stdio::piped())
+    // let mut vm = Command::new("/home/anmolbansal/holonym/enclave-nitro-demo/vm")
+    //     .stdin(Stdio::piped())
+    //     .stdout(Stdio::piped())
+    //     .stderr(Stdio::piped())
+    //     .spawn()
+    //     .expect("!vm");
+    // let out = child_stream_to_vec(vm.stdout.take().expect("!stdout"));
+    // let err = child_stream_to_vec(vm.stderr.take().expect("!stderr"));
+    // let mut stdin = match vm.stdin.take() {
+    //     Some(stdin) => stdin.write_all(buf),
+    //     None => panic!("!stdin"),
+    // };
+
+
+    // let output_stream = stream_command_output(Command::new("/home/anmolbansal/holonym/enclave-nitro-demo/vm"));
+    let path = PathBuf::from("/vm").canonicalize()?;
+
+    let mut child = Command::new(path)
+        .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .spawn()
-        .expect("!vm");
-    let out = child_stream_to_vec(vm.stdout.take().expect("!stdout"));
-    let err = child_stream_to_vec(vm.stderr.take().expect("!stderr"));
-    let mut stdin = match vm.stdin.take() {
-        Some(stdin) => stdin,
-        None => panic!("!stdin"),
-    };
+        .expect("Failed to start worker");
+
+    let handle = thread::spawn({
+        let stdout = child.stdout.take().unwrap();
+        set_nonblocking(&stdout, true)?;
+        let mut reader_out = BufReader::new(stdout);
+
+        let stderr = child.stderr.take().unwrap();
+        set_nonblocking(&stderr, true)?;
+        let mut reader_err = BufReader::new(stderr);
+
+        move || {
+            let key_out = 1;
+            let key_err = 2;
+            let mut out_closed = false;
+            let mut err_closed = false;
+
+            let poller = Poller::new().unwrap();
+            unsafe { poller.add(reader_out.get_ref(), Event::readable(key_out)).unwrap() };
+            unsafe {
+                poller.add(reader_err.get_ref(), Event::readable(key_err)).unwrap();   
+            }
+
+            let mut line = String::new();
+            let mut events = Events::with_capacity(NonZero::new(2).unwrap());
+            loop {
+                // Wait for at least one I/O event.
+                events.clear();
+                poller.wait(&mut events, None).unwrap();
+
+                for ev in events.iter() {
+                    // stdout is ready for reading
+                    if ev.key == key_out {
+                        let len = match reader_out.read_line(&mut line) {
+                            Ok(len) => len,
+                            Err(e) => {
+                                println!("stdout read returned error: {}", e);
+                                0
+                            }
+                        };
+                        if len == 0 {
+                            println!("stdout closed (len is null)");
+                            out_closed = true;
+                            poller.delete(reader_out.get_ref()).unwrap();
+                        } else {
+                            print!("[STDOUT] {}", line);
+                            line.clear();
+                            // reload the poller
+                            poller.modify(reader_out.get_ref(), Event::readable(key_out)).unwrap();
+                        }
+                    }
+
+                    // stderr is ready for reading
+                    if ev.key == key_err {
+                        let len = match reader_err.read_line(&mut line) {
+                            Ok(len) => len,
+                            Err(e) => {
+                                println!("stderr read returned error: {}", e);
+                                0
+                            }
+                        };
+                        if len == 0 {
+                            println!("stderr closed (len is null)");
+                            err_closed = true;
+                            poller.delete(reader_err.get_ref()).unwrap();
+                        } else {
+                            print!("[STDERR] {}", line);
+                            line.clear();
+                            // reload the poller
+                            poller.modify(reader_err.get_ref(), Event::readable(key_err)).unwrap();
+                        }
+                    }
+                }
+
+                if out_closed && err_closed {
+                    println!("Stream closed, exiting process thread");
+                    break;
+                }
+            }
+        }
+    });
+
+    handle.join().unwrap();
+    Ok(())
 }
 
 // match Command::new("/socat")
