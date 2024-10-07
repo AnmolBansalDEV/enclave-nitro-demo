@@ -1,4 +1,5 @@
 use libc::{fcntl, F_GETFL, F_SETFL, O_NONBLOCK};
+use polling::{Event, Events, Poller};
 use server::start_server;
 use std::io::{BufRead, BufReader};
 use std::num::NonZero;
@@ -13,9 +14,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 use system::{dmesg, freopen, mount, seed_entropy};
-use polling::{Event, Events, Poller};
 //TODO: Feature flag
 use aws::{get_entropy, init_platform};
+use tokio::task;
 
 // Mount common filesystems with conservative permissions
 fn init_rootfs() {
@@ -71,7 +72,7 @@ where
     if flags < 0 {
         return Err(std::io::Error::last_os_error());
     }
-    let flags = if nonblocking{
+    let flags = if nonblocking {
         flags | O_NONBLOCK
     } else {
         flags & !O_NONBLOCK
@@ -82,7 +83,6 @@ where
     }
     Ok(())
 }
-
 
 // Pipe streams are blocking, we need separate threads to monitor them without blocking the primary thread.
 fn child_stream_to_vec<R>(mut stream: R) -> Arc<Mutex<Vec<u8>>>
@@ -116,7 +116,6 @@ where
     out
 }
 
-
 fn debug_filesystem() {
     dmesg("Debugging filesystem:".to_string());
 
@@ -131,8 +130,6 @@ fn debug_filesystem() {
         }
         Err(e) => dmesg(format!("Error reading /: {}", e)),
     }
-
-
 
     // Check vm file
     match fs::metadata("/vm") {
@@ -187,7 +184,6 @@ fn start_socat_redirection() -> Result<(), std::io::Error> {
     //     None => panic!("!stdin"),
     // };
 
-
     // let output_stream = stream_command_output(Command::new("/home/anmolbansal/holonym/enclave-nitro-demo/vm"));
     let path = PathBuf::from("/vm").canonicalize()?;
 
@@ -214,9 +210,15 @@ fn start_socat_redirection() -> Result<(), std::io::Error> {
             let mut err_closed = false;
 
             let poller = Poller::new().unwrap();
-            unsafe { poller.add(reader_out.get_ref(), Event::readable(key_out)).unwrap() };
             unsafe {
-                poller.add(reader_err.get_ref(), Event::readable(key_err)).unwrap();   
+                poller
+                    .add(reader_out.get_ref(), Event::readable(key_out))
+                    .unwrap()
+            };
+            unsafe {
+                poller
+                    .add(reader_err.get_ref(), Event::readable(key_err))
+                    .unwrap();
             }
 
             let mut line = String::new();
@@ -244,7 +246,9 @@ fn start_socat_redirection() -> Result<(), std::io::Error> {
                             print!("[STDOUT] {}", line);
                             line.clear();
                             // reload the poller
-                            poller.modify(reader_out.get_ref(), Event::readable(key_out)).unwrap();
+                            poller
+                                .modify(reader_out.get_ref(), Event::readable(key_out))
+                                .unwrap();
                         }
                     }
 
@@ -265,7 +269,9 @@ fn start_socat_redirection() -> Result<(), std::io::Error> {
                             print!("[STDERR] {}", line);
                             line.clear();
                             // reload the poller
-                            poller.modify(reader_err.get_ref(), Event::readable(key_err)).unwrap();
+                            poller
+                                .modify(reader_err.get_ref(), Event::readable(key_err))
+                                .unwrap();
                         }
                     }
                 }
@@ -306,15 +312,18 @@ fn boot() {
         Ok(size) => dmesg(format!("Seeded kernel with entropy: {}", size)),
         Err(e) => eprintln!("{}", e),
     };
-    // Start socat redirection
-    start_socat_redirection();
 }
 
 #[tokio::main]
 async fn main() {
     boot();
     dmesg("EnclaveOS Booted".to_string());
-    start_server().await;
+
+    // Spawn server as a separate task
+    task::spawn(async move {
+        start_server().await;
+    });
+    start_socat_redirection();
 }
 
 // inside enclave socat connection
