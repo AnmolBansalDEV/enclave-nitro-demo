@@ -28,7 +28,7 @@ pub async fn start_server() {
         .route("/redis", get(connect_redis))
         .route("/access-internet", get(access_internet));
     // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
+    let listener = tokio::net::TcpListener::bind("192.168.127.2:8000").await.unwrap();
     axum::serve(listener, app).await.unwrap();
     dmesg("server started!!".to_string());
 }
