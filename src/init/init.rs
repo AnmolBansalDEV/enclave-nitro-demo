@@ -164,8 +164,8 @@ fn start_redirection() -> Result<(), std::io::Error> {
 
     let mut child = Command::new(path)
         .stdin(Stdio::null())
-        .stdout(Stdio::piped())  // Pipe stdout
-        .stderr(Stdio::piped())  // Pipe stderr
+        .stdout(Stdio::piped()) // Pipe stdout
+        .stderr(Stdio::piped()) // Pipe stderr
         .spawn()
         .expect("Failed to start worker");
 
@@ -187,8 +187,12 @@ fn start_redirection() -> Result<(), std::io::Error> {
         let mut events = Events::with_capacity(NonZero::new(2).unwrap());
 
         unsafe {
-            poller.add(reader_out.get_ref(), Event::readable(key_out)).unwrap();
-            poller.add(reader_err.get_ref(), Event::readable(key_err)).unwrap();
+            poller
+                .add(reader_out.get_ref(), Event::readable(key_out))
+                .unwrap();
+            poller
+                .add(reader_err.get_ref(), Event::readable(key_err))
+                .unwrap();
         }
 
         loop {
@@ -210,7 +214,9 @@ fn start_redirection() -> Result<(), std::io::Error> {
                     } else {
                         print!("[STDOUT] {}", line);
                         line.clear();
-                        poller.modify(reader_out.get_ref(), Event::readable(key_out)).unwrap();
+                        poller
+                            .modify(reader_out.get_ref(), Event::readable(key_out))
+                            .unwrap();
                     }
                 }
                 if ev.key == key_err {
@@ -227,7 +233,9 @@ fn start_redirection() -> Result<(), std::io::Error> {
                     } else {
                         print!("[STDERR] {}", line);
                         line.clear();
-                        poller.modify(reader_err.get_ref(), Event::readable(key_err)).unwrap();
+                        poller
+                            .modify(reader_err.get_ref(), Event::readable(key_err))
+                            .unwrap();
                     }
                 }
             }
@@ -270,9 +278,24 @@ async fn main() {
 
     let test_server = tokio::spawn(async {
         let url = "http://127.0.0.1:8000/";
-    let response = reqwest::get(url).await.unwrap().text().await.unwrap();
-    println!("{}", response);
+    
+        match reqwest::get(url).await {
+            Ok(response) => {
+                match response.text().await {
+                    Ok(text) => {
+                        println!("{}", text);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to read response text: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                eprintln!("Failed to make GET request: {}", e);
+            }
+        }
     });
+    
 
     // Wait for both tasks to complete
     tokio::join!(redirection_task, server_task, test_server);
