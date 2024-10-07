@@ -294,9 +294,23 @@ async fn main() {
     });
 
     let test_server = tokio::spawn(async {
-        let url = "http://127.0.0.1:8000/";
+        let url = "http://127.0.0.1:8000";
 
         match reqwest::get(url).await {
+            Ok(response) => match response.text().await {
+                Ok(text) => {
+                    println!("{}", text);
+                }
+                Err(e) => {
+                    eprintln!("Failed to read response text: {}", e);
+                }
+            },
+            Err(e) => {
+                eprintln!("Failed to make GET request: {}", e);
+            }
+        }
+
+        match reqwest::get(format!("{}/access-internet", url)).await {
             Ok(response) => match response.text().await {
                 Ok(text) => {
                     println!("{}", text);
