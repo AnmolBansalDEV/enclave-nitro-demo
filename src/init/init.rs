@@ -114,7 +114,6 @@ fn start_socat_redirection() {
     }
 
     match Command::new("/vm")
-        .args(&["-url", "vsock://3:1024/connect", "-debug"])
         .spawn()
         {
             Ok(output) => dmesg(format!("Started vm redirection: {:?}", output)),
