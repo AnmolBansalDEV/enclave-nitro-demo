@@ -1,6 +1,13 @@
-use std::{fs, os::unix::fs::PermissionsExt, process::Command};
-
 use server::start_server;
+use std::io::{self, Write};
+use std::thread;
+use std::{
+    fs,
+    io::Read,
+    os::unix::fs::PermissionsExt,
+    process::{Command, Stdio},
+    sync::{Arc, Mutex},
+};
 use system::{dmesg, freopen, mount, seed_entropy};
 
 //TODO: Feature flag
@@ -50,6 +57,39 @@ fn init_console() {
         }
     }
 }
+
+// Pipe streams are blocking, we need separate threads to monitor them without blocking the primary thread.
+fn child_stream_to_vec<R>(mut stream: R) -> Arc<Mutex<Vec<u8>>>
+where
+    R: Read + Send + 'static,
+{
+    let out = Arc::new(Mutex::new(Vec::new()));
+    let vec = out.clone();
+    thread::Builder::new()
+        .name("child_stream_to_vec".into())
+        .spawn(move || loop {
+            let mut buf = [0];
+            match stream.read(&mut buf) {
+                Err(err) => {
+                    println!("{}] Error reading from stream: {}", line!(), err);
+                    break;
+                }
+                Ok(got) => {
+                    if got == 0 {
+                        break;
+                    } else if got == 1 {
+                        vec.lock().expect("!lock").push(buf[0])
+                    } else {
+                        println!("{}] Unexpected number of bytes: {}", line!(), got);
+                        break;
+                    }
+                }
+            }
+        })
+        .expect("!thread");
+    out
+}
+
 fn debug_filesystem() {
     dmesg("Debugging filesystem:".to_string());
 
@@ -96,46 +136,44 @@ fn debug_filesystem() {
 fn start_socat_redirection() {
     debug_filesystem();
 
-    match Command::new("/ifconfig")
+    let ifconfig = Command::new("/ifconfig")
         .args(&["lo", "127.0.0.1"])
         .output()
-    {
-        Ok(output) => {
-            dmesg(format!(
-                "ifconfig output: {:?}",
-                String::from_utf8_lossy(&output.stdout)
-            ));
-            dmesg(format!(
-                "ifconfig error: {:?}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
-        }
-        Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
-    }
+        .expect("failed to execute process");
 
-    // match Command::new("/vm")
-    //     .spawn()
-    //     {
-    //         Ok(output) => dmesg(format!("Started vm redirection: {:?}", output)),
-    //         Err(e) => dmesg(format!("Failed to start vm: {}", e)),
-    //     }
-    // }
+    println!("status: {}", ifconfig.status);
+    io::stdout().write_all(&ifconfig.stdout).unwrap();
+    io::stderr().write_all(&ifconfig.stderr).unwrap();
 
-    match Command::new("/socat")
-        .args(&[
-            "-d",
-            "-d",
-            "-t",
-            "30",
-            "VSOCK-LISTEN:1000,fork,reuseaddr",
-            "TCP:127.0.0.1:8000",
-        ])
+    let mut vm = Command::new("/vm")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
-    {
-        Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
-        Err(e) => dmesg(format!("Failed to start socat: {}", e)),
-    }
+        .expect("!vm");
+    let out = child_stream_to_vec(vm.stdout.take().expect("!stdout"));
+    let err = child_stream_to_vec(vm.stderr.take().expect("!stderr"));
+    let mut stdin = match vm.stdin.take() {
+        Some(stdin) => stdin,
+        None => panic!("!stdin"),
+    };
 }
+
+// match Command::new("/socat")
+//     .args(&[
+//         "-d",
+//         "-d",
+//         "-t",
+//         "30",
+//         "VSOCK-LISTEN:1000,fork,reuseaddr",
+//         "TCP:127.0.0.1:8000",
+//     ])
+//     .spawn()
+// {
+//     Ok(output) => dmesg(format!("Started socat redirection: {:?}", output)),
+//     Err(e) => dmesg(format!("Failed to start socat: {}", e)),
+// }
+// }
 
 fn boot() {
     init_rootfs();
