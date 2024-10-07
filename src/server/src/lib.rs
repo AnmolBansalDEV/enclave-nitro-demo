@@ -1,3 +1,4 @@
+use std::net::{SocketAddr, TcpListener};
 use axum::{routing::get, Router};
 use redis::Commands;
 use system::dmesg;
@@ -22,15 +23,31 @@ async fn connect_redis() -> String {
 // policy engine server microservice enclave => signer engine
 
 pub async fn start_server() {
-    // build our application with a single route
+    // Build our application with routes
     let app = Router::new()
         .route("/", get(|| async { "Hello, World!" }))
         .route("/redis", get(connect_redis))
         .route("/access-internet", get(access_internet));
-    // run our app with hyper, listening globally on port 8000
-    let listener = tokio::net::TcpListener::bind("127.0.0.1:8000").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-    dmesg("server started!!".to_string());
+
+    // Define the address to bind to
+    let addr = "127.0.0.1:8000".parse::<SocketAddr>().expect("Invalid address");
+
+    // Try binding the TcpListener
+    let listener = match TcpListener::bind(addr) {
+        Ok(listener) => listener,
+        Err(e) => {
+            eprintln!("Failed to bind to address: {}", e);
+            return;
+        }
+    };
+
+    // Log successful start
+    println!("Server started on {}", addr);
+
+    // Start the server
+    if let Err(e) = axum::Server::from_tcp(listener).unwrap().serve(app.into_make_service()).await {
+        eprintln!("Server error: {}", e);
+    }
 }
 
 // #[tokio::main]

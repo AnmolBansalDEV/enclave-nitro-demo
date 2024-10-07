@@ -268,12 +268,14 @@ async fn main() {
         start_server().await;
     });
 
-    // Wait for both tasks to complete
-    tokio::join!(redirection_task, server_task);
-    
-    let url = "http://127.0.0.1:8000/";
+    let test_server = tokio::spawn(async {
+        let url = "http://127.0.0.1:8000/";
     let response = reqwest::get(url).await.unwrap().text().await.unwrap();
     println!("{}", response);
+    });
+
+    // Wait for both tasks to complete
+    tokio::join!(redirection_task, server_task, test_server);
 }
 
 // inside enclave socat connection

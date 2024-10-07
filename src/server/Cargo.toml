@@ -4,8 +4,9 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-axum = "0.7.5"
+axum = { version = "0.6.18", features = ["ws", "query", "multipart", "tokio"] }
 reqwest = "0.11"
 tokio = { version = "1.40.0", features = ["rt-multi-thread"] }
 system ={ path = "../system"}
 redis = "0.27.2"
+tracing = "0.1.40"
