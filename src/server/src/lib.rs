@@ -4,10 +4,18 @@ use redis::Commands;
 use system::dmesg;
 
 async fn access_internet() -> String {
-    let url = "https://jsonplaceholder.typicode.com/todos/1";
-    let response = reqwest::get(url).await.unwrap().text().await.unwrap();
-
-    response
+    let url = "http://jsonplaceholder.typicode.com/todos/1";
+    let client = reqwest::Client::builder()
+    .danger_accept_invalid_certs(true)
+    .build().unwrap();
+    let response = client.get(url).send().await;
+    match response {
+        Ok(res) => res.text().await.unwrap(),
+        Err(err) => {
+            eprintln!("{}", err);
+            return Default::default()
+        }
+    }
 }
 
 async fn connect_redis() -> String {
