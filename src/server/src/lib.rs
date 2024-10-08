@@ -19,13 +19,12 @@ async fn access_internet() -> String {
 }
 
 async fn connect_redis() -> String {
-    let client = redis::Client::open("redis://127.0.0.1:6379").unwrap();
+    let client = redis::Client::open("redis://192.168.127.1:6379").unwrap();
     let mut con = client.get_connection().unwrap();
     let _: () = con.set("my_key", 42).unwrap();
     
     let val: String = con.get("my_key").unwrap();
     val
-    // "ok".to_string()
 }
 // redis server/
 // policy engine server microservice enclave => signer engine
