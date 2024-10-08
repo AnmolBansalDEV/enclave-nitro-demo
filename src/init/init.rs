@@ -279,38 +279,38 @@ fn boot() {
     };
 }
 
-fn configure_dns() -> io::Result<()> {
-    // Path to the resolv.conf file inside the VM
-    let resolv_conf_path = "/etc/resolv.conf";
+// fn configure_dns() -> io::Result<()> {
+//     // Path to the resolv.conf file inside the VM
+//     let resolv_conf_path = "/etc/resolv.conf";
     
-    // Open the file in write mode, truncating the previous contents
-    let mut file = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(resolv_conf_path)?;
+//     // Open the file in write mode, truncating the previous contents
+//     let mut file = OpenOptions::new()
+//         .write(true)
+//         .create(true)
+//         .truncate(true)
+//         .open(resolv_conf_path)?;
     
-    // DNS configuration to write
-    let dns_config = "nameserver 192.168.127.1\n";
+//     // DNS configuration to write
+//     let dns_config = "nameserver 192.168.127.1\n";
     
-    // Write the DNS configuration to the file
-    file.write_all(dns_config.as_bytes())?;
+//     // Write the DNS configuration to the file
+//     file.write_all(dns_config.as_bytes())?;
     
-    // Ensure everything is written to the file
-    file.flush()?;
+//     // Ensure everything is written to the file
+//     file.flush()?;
     
-    Ok(())
-}
+//     Ok(())
+// }
 
 #[tokio::main]
 async fn main() {
     boot();
     dmesg("EnclaveOS Booted".to_string());
     
-    match configure_dns() {
-        Ok(_) => println!("DNS configuration updated successfully."),
-        Err(e) => eprintln!("Failed to update DNS configuration: {}", e),
-    }
+    // match configure_dns() {
+    //     Ok(_) => println!("DNS configuration updated successfully."),
+    //     Err(e) => eprintln!("Failed to update DNS configuration: {}", e),
+    // }
 
     // Spawn a task to handle the redirection so that it doesn't block the server
     let redirection_task = tokio::task::spawn_blocking(|| {

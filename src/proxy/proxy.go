@@ -138,7 +138,7 @@ func writeResolvconf() error {
 	// A Nitro Enclave's /etc/resolv.conf is a symlink to
 	// /run/resolvconf/resolv.conf.  As of 2022-11-21, the /run/ directory
 	// exists but not its resolvconf/ subdirectory.
-	dir := "/run/resolvconf/"
+	dir := "/etc/"
 	file := dir + "resolv.conf"
 
 	if err := os.MkdirAll(dir, 0755); err != nil {
