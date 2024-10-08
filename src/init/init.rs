@@ -352,6 +352,19 @@ async fn main() {
                 eprintln!("Failed to make GET request: {}", e);
             }
         }
+        match reqwest::get(format!("{}/redis", url)).await {
+            Ok(response) => match response.text().await {
+                Ok(text) => {
+                    println!("{}", text);
+                }
+                Err(e) => {
+                    eprintln!("Failed to read response text: {}", e);
+                }
+            },
+            Err(e) => {
+                eprintln!("Failed to make GET request: {}", e);
+            }
+        }
     });
 
     // Wait for both tasks to complete
