@@ -161,22 +161,6 @@ fn debug_filesystem() {
 }
 
 fn start_redirection() -> Result<(), std::io::Error> {
-    match Command::new("/ifconfig")
-        .args(&["lo", "127.0.0.1"])
-        .output()
-    {
-        Ok(output) => {
-            dmesg(format!(
-                "ifconfig output: {:?}",
-                String::from_utf8_lossy(&output.stdout)
-            ));
-            dmesg(format!(
-                "ifconfig error: {:?}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
-        }
-        Err(e) => dmesg(format!("Failed to execute ifconfig: {}", e)),
-    }
 
     let path = PathBuf::from("/vm").canonicalize()?;
 
