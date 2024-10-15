@@ -131,33 +131,6 @@ fn debug_filesystem() {
         }
         Err(e) => dmesg(format!("Error reading /: {}", e)),
     }
-
-    // Check vm file
-    match fs::metadata("/vm") {
-        Ok(metadata) => {
-            dmesg(format!("vm metadata: {:?}", metadata));
-            dmesg(format!(
-                "vm permissions: {:o}",
-                metadata.permissions().mode()
-            ));
-        }
-        Err(e) => dmesg(format!("Error getting vm metadata: {}", e)),
-    }
-
-    // Try to execute socat with --version
-    match Command::new("/vm").arg("-dkk").output() {
-        Ok(output) => {
-            dmesg(format!(
-                "socat -h output: {:?}",
-                String::from_utf8_lossy(&output.stdout)
-            ));
-            dmesg(format!(
-                "socat -h error: {:?}",
-                String::from_utf8_lossy(&output.stderr)
-            ));
-        }
-        Err(e) => dmesg(format!("Error executing vm -dkk: {}", e)),
-    }
 }
 
 fn start_redirection() -> Result<(), std::io::Error> {
@@ -289,6 +262,7 @@ fn boot() {
 #[tokio::main]
 async fn main() {
     boot();
+    debug_filesystem();
     dmesg("EnclaveOS Booted".to_string());
     
     // match configure_dns() {

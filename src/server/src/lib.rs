@@ -1,13 +1,10 @@
 use std::net::{SocketAddr, TcpListener};
 use axum::{routing::get, Router};
 use redis::Commands;
-use system::dmesg;
 
 async fn access_internet() -> String {
     let url = "http://jsonplaceholder.typicode.com/todos/1";
-    let client = reqwest::Client::builder()
-    .danger_accept_invalid_certs(true)
-    .build().unwrap();
+    let client = reqwest::Client::new();
     let response = client.get(url).send().await;
     match response {
         Ok(res) => res.text().await.unwrap(),
