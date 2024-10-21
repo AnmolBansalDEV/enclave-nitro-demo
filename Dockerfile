@@ -14,12 +14,6 @@ FROM stagex/pkgconf:sx2024.09.0@sha256:ba7fce4108b721e8bf1a0d993a5f9be9b65eceda8
 FROM stagex/busybox:sx2024.09.0@sha256:d34bfa56566aa72d605d6cbdc154de8330cf426cfea1bc4ba8013abcac594395 AS busybox
 FROM stagex/linux-nitro:sx2024.03.0@sha256:073c4603686e3bdc0ed6755fee3203f6f6f1512e0ded09eaea8866b002b04264 AS linux-nitro
 
-FROM scratch AS net_tools_base
-ENV VERSION=2.10
-ENV SRC_HASH=b262435a5241e89bfa51c3cabd5133753952f7a7b7b93f32e08cb9d96f580d69
-ENV SRC_FILE=net-tools-2.10.tar.xz
-ENV SRC_SITE=https://downloads.sourceforge.net/project/net-tools/net-tools-2.10.tar.xz
-
 FROM scratch AS base
 ENV TARGET=x86_64-unknown-linux-musl
 ENV RUSTFLAGS="-C target-feature=+crt-static"
