@@ -46,11 +46,14 @@ RUN cargo build ${CARGOFLAGS}
 WORKDIR /build_cpio
 RUN cp /src/init/target/${TARGET}/release/init init
 RUN cp /vm vm
+RUN cp /caddy caddy
+RUN cp /Caddyfile Caddyfile
 ENV KBUILD_BUILD_TIMESTAMP=1
 COPY <<-EOF initramfs.list
 	file /init     init        0755 0 0
 	file /nsm.ko   /nsm.ko     0755 0 0
 	file /vm       /vm         0755 0 0
+	file /caddy    /caddy      0755 0 0
 	dir  /run              	   0755 0 0
 	dir  /tmp                  0755 0 0
 	dir  /etc                  0755 0 0

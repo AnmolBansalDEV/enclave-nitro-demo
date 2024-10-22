@@ -226,6 +226,101 @@ fn start_redirection() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+
+fn reverse_proxy() -> Result<(), std::io::Error> {
+
+    let path = PathBuf::from("/caddy").canonicalize()?;
+
+    let mut child = Command::new(path)
+        .arg("run")
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped()) // Pipe stdout
+        .stderr(Stdio::piped()) // Pipe stderr
+        .spawn()
+        .expect("Failed to start worker");
+
+    let stdout = child.stdout.take().unwrap();
+    set_nonblocking(&stdout, true)?;
+    let stderr = child.stderr.take().unwrap();
+    set_nonblocking(&stderr, true)?;
+
+    // Poll for both stdout and stderr
+    let handle = thread::spawn(move || {
+        let mut reader_out = BufReader::new(stdout);
+        let mut reader_err = BufReader::new(stderr);
+        let poller = Poller::new().unwrap();
+        let key_out = 1;
+        let key_err = 2;
+        let mut out_closed = false;
+        let mut err_closed = false;
+        let mut line = String::new();
+        let mut events = Events::with_capacity(NonZero::new(2).unwrap());
+
+        unsafe {
+            poller
+                .add(reader_out.get_ref(), Event::readable(key_out))
+                .unwrap();
+            poller
+                .add(reader_err.get_ref(), Event::readable(key_err))
+                .unwrap();
+        }
+
+        loop {
+            events.clear();
+            poller.wait(&mut events, None).unwrap();
+
+            for ev in events.iter() {
+                if ev.key == key_out {
+                    let len = match reader_out.read_line(&mut line) {
+                        Ok(len) => len,
+                        Err(e) => {
+                            println!("stdout error: {}", e);
+                            0
+                        }
+                    };
+                    if len == 0 {
+                        out_closed = true;
+                        poller.delete(reader_out.get_ref()).unwrap();
+                    } else {
+                        print!("[STDOUT] {}", line);
+                        line.clear();
+                        poller
+                            .modify(reader_out.get_ref(), Event::readable(key_out))
+                            .unwrap();
+                    }
+                }
+                if ev.key == key_err {
+                    let len = match reader_err.read_line(&mut line) {
+                        Ok(len) => len,
+                        Err(e) => {
+                            println!("stderr error: {}", e);
+                            0
+                        }
+                    };
+                    if len == 0 {
+                        err_closed = true;
+                        poller.delete(reader_err.get_ref()).unwrap();
+                    } else {
+                        print!("[STDERR] {}", line);
+                        line.clear();
+                        poller
+                            .modify(reader_err.get_ref(), Event::readable(key_err))
+                            .unwrap();
+                    }
+                }
+            }
+
+            if out_closed && err_closed {
+                println!("Stream closed, exiting process thread");
+                break;
+            }
+        }
+    });
+
+    handle.join().unwrap();
+    Ok(())
+}
+
 fn boot() {
     init_rootfs();
     init_console();
@@ -274,7 +369,9 @@ async fn main() {
     let redirection_task = tokio::task::spawn_blocking(|| {
         start_redirection().unwrap();
     });
-
+    let reverse_proxy =  tokio::task::spawn_blocking(|| {
+        reverse_proxy().unwrap();
+    }); 
     // Start the server asynchronously
     let server_task = tokio::spawn(async {
         start_server().await;
@@ -326,7 +423,7 @@ async fn main() {
     });
 
     // Wait for both tasks to complete
-    tokio::join!(redirection_task, server_task, test_server);
+    tokio::join!(redirection_task, reverse_proxy, server_task, test_server);
 }
 
 // inside enclave socat connection
