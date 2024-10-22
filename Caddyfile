@@ -1,9 +1,7 @@
 {
 	debug
 	admin off
-	auto_https off
-	auto_https disable_redirects
 }
-:80 {
+ec2-3-23-54-159.us-east-2.compute.amazonaws.com {
 	reverse_proxy 0.0.0.0:8000
 }
