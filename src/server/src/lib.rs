@@ -35,7 +35,7 @@ pub async fn start_server() {
         .route("/access-internet", get(access_internet));
 
     // Define the address to bind to
-    let addr = "192.168.127.2:8000".parse::<SocketAddr>().expect("Invalid address");
+    let addr = "0.0.0.0:8000".parse::<SocketAddr>().expect("Invalid address");
 
     // Try binding the TcpListener
     let listener = match TcpListener::bind(addr) {
