@@ -371,9 +371,9 @@ async fn main() {
     let redirection_task = tokio::task::spawn_blocking(|| {
         start_redirection().unwrap();
     });
-    let reverse_proxy =  tokio::task::spawn_blocking(|| {
-        reverse_proxy().unwrap();
-    }); 
+    // let reverse_proxy =  tokio::task::spawn_blocking(|| {
+    //     reverse_proxy().unwrap();
+    // }); 
     // Start the server asynchronously
     let server_task = tokio::spawn(async {
         start_server().await;
@@ -425,7 +425,7 @@ async fn main() {
     });
 
     // Wait for both tasks to complete
-    tokio::join!(redirection_task, reverse_proxy, server_task, test_server);
+    tokio::join!(redirection_task, server_task, test_server);
 }
 
 // inside enclave socat connection
