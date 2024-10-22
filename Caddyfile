@@ -1,8 +1,9 @@
 {
-    admin off
-    auto_https off
-    auto_https disable_redirects
+	debug
+	admin off
+	auto_https off
+	auto_https disable_redirects
 }
-:80 {
-    reverse_proxy :8000
+:6000 {
+	reverse_proxy :8000
 }
