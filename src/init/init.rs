@@ -381,7 +381,7 @@ async fn main() {
 
     let test_server = tokio::spawn(async {
         let url = "http://192.168.127.2:8000";
-
+        print!("testing server now!");
         match reqwest::get(url).await {
             Ok(response) => match response.text().await {
                 Ok(text) => {
