@@ -50,24 +50,25 @@ RUN cp /caddy caddy
 RUN cp /Caddyfile Caddyfile
 ENV KBUILD_BUILD_TIMESTAMP=1
 COPY <<-EOF initramfs.list
-	file /init     init        0755 0 0
-	file /nsm.ko   /nsm.ko     0755 0 0
-	file /vm       /vm         0755 0 0
-	file /caddy    /caddy      0755 0 0
-	dir  /run              	   0755 0 0
-	dir  /tmp                  0755 0 0
-	dir  /etc                  0755 0 0
-	dir  /bin                  0755 0 0
-	dir  /sbin                 0755 0 0
-	dir  /proc                 0755 0 0
-	dir  /sys                  0755 0 0
-	dir  /usr                  0755 0 0
-	dir  /usr/bin              0755 0 0
-	dir  /usr/sbin             0755 0 0
-	dir  /dev                  0755 0 0
-	dir  /dev/shm              0755 0 0
-	dir  /dev/pts              0755 0 0
-	nod  /dev/console          0600 0 0 c 5 1
+	file /init         init       0755 0 0
+	file /nsm.ko       /nsm.ko    0755 0 0
+	file /vm           /vm        0755 0 0
+	file /caddy        /caddy     0755 0 0
+	file /Caddyfile    /Caddyfile 0755 0 0
+	dir  /run              	      0755 0 0
+	dir  /tmp                     0755 0 0
+	dir  /etc                     0755 0 0
+	dir  /bin                     0755 0 0
+	dir  /sbin                    0755 0 0
+	dir  /proc                    0755 0 0
+	dir  /sys                     0755 0 0
+	dir  /usr                     0755 0 0
+	dir  /usr/bin                 0755 0 0
+	dir  /usr/sbin                0755 0 0
+	dir  /dev                     0755 0 0
+	dir  /dev/shm                 0755 0 0
+	dir  /dev/pts                 0755 0 0
+	nod  /dev/console             0600 0 0 c 5 1
 EOF
 RUN <<-EOF
 	find . -exec touch -hcd "@0" "{}" +

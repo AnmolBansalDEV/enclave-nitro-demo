@@ -4,6 +4,6 @@
 	auto_https off
 	auto_https disable_redirects
 }
-:6000 {
+:80 {
 	reverse_proxy :8000
 }

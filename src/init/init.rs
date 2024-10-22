@@ -233,6 +233,8 @@ fn reverse_proxy() -> Result<(), std::io::Error> {
 
     let mut child = Command::new(path)
         .arg("run")
+        .arg("--config")
+        .arg("/Caddyfile")
         .stdin(Stdio::null())
         .stdout(Stdio::piped()) // Pipe stdout
         .stderr(Stdio::piped()) // Pipe stderr
